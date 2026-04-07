@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electrical Board Efficiency Analyzer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563eb;--primary-hover:#1d4ed8;--primary-light:#dbeafe;
+  --bg:#f8fafc;--card:#fff;--text:#1e293b;--muted:#64748b;
+  --border:#e2e8f0;--success:#16a34a;--success-light:#dcfce7;
+  --warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fef2f2;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+header{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;padding:2rem 1rem;text-align:center}
+header h1{font-size:1.75rem;font-weight:700;letter-spacing:-.02em}
+header p{color:#cbd5e1;margin-top:.25rem;font-size:.95rem}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.card h2{font-size:1.2rem;margin-bottom:1rem;color:var(--primary);display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:1.05rem;margin-bottom:.75rem;color:var(--text)}
+.field{margin-bottom:.85rem}
+.field label{display:block;font-weight:600;font-size:.875rem;margin-bottom:.3rem}
+.field .hint{font-weight:400;color:var(--muted);font-size:.8rem}
+.field input,.field select{width:100%;height:2.5rem;padding:0 .75rem;border:1px solid var(--border);
+  border-radius:8px;font-size:.95rem;color:var(--text);background:#fff;transition:border-color .15s,box-shadow .15s}
+.field select{appearance:auto}
+.field input:focus,.field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.row{display:grid;gap:1rem}.row-2{grid-template-columns:1fr 1fr}.row-3{grid-template-columns:1fr 1fr 1fr}
+.row-4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:768px){.row-2,.row-3,.row-4{grid-template-columns:1fr}}
+button.primary{background:var(--primary);color:#fff;border:none;border-radius:8px;
+  padding:.75rem 2rem;font-size:1rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+button.primary:hover{background:var(--primary-hover)}
+button.primary:active{transform:scale(.98)}
+button.primary:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+button.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;
+  padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+button.secondary:hover{background:var(--primary-light)}
+button.danger{background:#fff;color:var(--error);border:1px solid var(--error);border-radius:6px;
+  padding:.35rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer}
+button.danger:hover{background:var(--error-light)}
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+.comp-card{border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;background:#fafbfc;position:relative}
+.comp-card h4{font-size:.95rem;margin-bottom:.75rem;color:var(--primary);display:flex;justify-content:space-between;align-items:center}
+.comp-loss{background:var(--warning-light);border-radius:8px;padding:.5rem .75rem;margin-top:.5rem;font-size:.85rem;font-weight:600}
+.comp-loss.good{background:var(--success-light);color:#166534}
+.comp-loss.bad{background:var(--error-light);color:#991b1b}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.75rem 0}
+th,td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#f8fafc;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+td{font-variant-numeric:tabular-nums}
+.stat{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.stat:last-child{border-bottom:none}
+.stat-label{color:var(--muted)}.stat-value{font-weight:600}
+.analysis{border-left:3px solid var(--primary);padding:.75rem 1rem;background:#f0f9ff;border-radius:0 8px 8px 0;margin:.75rem 0;font-size:.9rem;line-height:1.7}
+.analysis.warn{border-left-color:var(--warning);background:var(--warning-light)}
+.analysis.good{border-left-color:var(--success);background:var(--success-light)}
+.highlight{border-radius:6px;padding:.75rem 1rem;font-weight:600;text-align:center;margin:.75rem 0;font-size:1rem}
+.eff-chain{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:1rem 0;justify-content:center}
+.eff-block{border-radius:8px;padding:.6rem .8rem;text-align:center;font-size:.82rem;min-width:90px;border:2px solid}
+.eff-block .eff-name{font-weight:600;margin-bottom:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.eff-block .eff-val{font-size:1.1rem;font-weight:700}
+.eff-block.green{border-color:#16a34a;background:#f0fdf4;color:#166534}
+.eff-block.yellow{border-color:#ca8a04;background:#fefce8;color:#854d0e}
+.eff-block.orange{border-color:#ea580c;background:#fff7ed;color:#9a3412}
+.eff-block.red{border-color:#dc2626;background:#fef2f2;color:#991b1b}
+.eff-arrow{font-size:1.2rem;color:var(--muted);margin:0 .25rem}
+.eff-total{border:3px solid var(--primary);background:var(--primary-light);color:var(--primary);border-radius:10px;padding:.8rem 1.2rem;text-align:center;margin-left:.5rem}
+.eff-total .eff-val{font-size:1.4rem}
+#results{display:none}
+#results.visible{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:1rem}
+.chart-container canvas{width:100%!important;height:auto!important;border-radius:10px;border:1px solid var(--border);background:#fff}
+.chart-title{font-weight:700;font-size:1.05rem;margin-bottom:.25rem;color:var(--text)}
+.chart-subtitle{font-size:.85rem;color:var(--muted);margin-bottom:.75rem}
+.add-row{display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem}
+.add-row .field{margin-bottom:0;flex:1;min-width:200px}
+.empty-msg{text-align:center;padding:2rem;color:var(--muted);font-style:italic}
+footer{text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)}
+.savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+@media(max-width:600px){.savings-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Electrical Board Efficiency Analyzer</h1>
+  <p>Analyse component losses, find greener alternatives, and calculate cost savings</p>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h2>Board Settings</h2>
+    <div class="row row-4">
+      <div class="field">
+        <label for="board-vin">Input Voltage <span class="hint">(V)</span></label>
+        <input type="number" id="board-vin" value="230" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="board-hours">Operating Hours <span class="hint">(per day)</span></label>
+        <input type="number" id="board-hours" value="24" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="board-elec">Electricity Cost <span class="hint">(per kWh)</span></label>
+        <input type="number" id="board-elec" value="0.12" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="board-units">Number of Units <span class="hint">(deployed)</span></label>
+        <input type="number" id="board-units" value="1" step="1" min="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Components</h2>
+    <div class="add-row">
+      <div class="field">
+        <label for="comp-type">Component Type</label>
+        <select id="comp-type"></select>
+      </div>
+      <button class="primary" id="btn-add" type="button" style="height:2.5rem">+ Add Component</button>
+      <button class="secondary" id="btn-demo" type="button" style="height:2.5rem">Load Demo Board</button>
+    </div>
+    <div id="comp-list"></div>
+    <div id="comp-empty" class="empty-msg">No components added yet. Select a type above and click "Add Component".</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="primary" id="btn-analyze" type="button">Analyse Board Efficiency</button>
+    <button class="secondary" id="btn-csv" type="button">Download CSV Report</button>
+  </div>
+
+  <div id="results" aria-live="polite">
+    <div class="card" id="res-chain"></div>
+    <div class="card" id="res-breakdown"></div>
+    <div class="card" id="res-alts"></div>
+    <div class="card" id="res-cost"></div>
+    <div class="card" id="res-charts"></div>
+  </div>
+</main>
+
+<footer>
+  <p>Estimates based on typical component specifications. Actual losses depend on operating conditions, PCB layout, and thermal environment.</p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DATA MODEL
+   ═══════════════════════════════════════════════════════ */
+
+const COMP_TYPES = {
+  "ac-dc":    { label: "AC-DC Power Supply", cat: "Power Conversion", inPath: true },
+  "dc-dc":    { label: "DC-DC Converter (Buck/Boost)", cat: "Power Conversion", inPath: true },
+  "ldo":      { label: "LDO Voltage Regulator", cat: "Power Conversion", inPath: true },
+  "transformer": { label: "Transformer", cat: "Power Conversion", inPath: true },
+  "mosfet":   { label: "MOSFET / Transistor", cat: "Switching", inPath: false },
+  "diode":    { label: "Diode (Rectifier/Schottky)", cat: "Switching", inPath: false },
+  "capacitor":{ label: "Capacitor (ESR Loss)", cat: "Passive", inPath: false },
+  "inductor": { label: "Inductor (DCR Loss)", cat: "Passive", inPath: false },
+  "resistor": { label: "Resistor", cat: "Passive", inPath: false },
+  "led":      { label: "LED", cat: "Load", inPath: false },
+  "motor":    { label: "Motor / Actuator", cat: "Load", inPath: false },
+  "relay":    { label: "Relay", cat: "Switching", inPath: false },
+};
+
+const PRESETS = {
+  "ac-dc": [
+    { name:"Generic 12V/2A SMPS", v_in:230, v_out:12, i_out:2, eff:82, iq:5, cost:4.50 },
+    { name:"Generic 5V/3A USB PSU", v_in:230, v_out:5, i_out:3, eff:78, iq:10, cost:3.00 },
+    { name:"Meanwell 24V/1A", v_in:230, v_out:24, i_out:1, eff:87, iq:2, cost:12.00 },
+  ],
+  "dc-dc": [
+    { name:"LM2596 Buck 3.3V", v_in:12, v_out:3.3, i_out:1, eff:80, iq:5000, cost:1.20 },
+    { name:"MP1584 Buck 5V", v_in:12, v_out:5, i_out:3, eff:85, iq:100, cost:0.80 },
+    { name:"LM2577 Boost 12V", v_in:5, v_out:12, i_out:0.5, eff:78, iq:3000, cost:1.50 },
+  ],
+  "ldo": [
+    { name:"LM7805 (5V LDO)", v_in:12, v_out:5, i_out:1, iq:5000, cost:0.50 },
+    { name:"AMS1117-3.3", v_in:5, v_out:3.3, i_out:0.8, iq:5000, cost:0.25 },
+    { name:"LM317 (adj)", v_in:12, v_out:5, i_out:0.5, iq:3500, cost:0.40 },
+  ],
+  "transformer": [
+    { name:"EI Core 50VA", eff:90, p_core:2, p_copper:3, cost:8.00 },
+    { name:"Toroidal 100VA", eff:94, p_core:1.5, p_copper:2.5, cost:15.00 },
+  ],
+  "mosfet": [
+    { name:"IRF540N", rds_on:44, qg:71, i_d:5, f_sw:100, v_gs:10, cost:0.80 },
+    { name:"IRLZ44N (logic level)", rds_on:22, qg:48, i_d:3, f_sw:100, v_gs:5, cost:0.90 },
+    { name:"IRF3205", rds_on:8, qg:146, i_d:10, f_sw:50, v_gs:10, cost:1.20 },
+  ],
+  "diode": [
+    { name:"1N4007 (Standard)", vf:0.7, i_f:1, cost:0.05 },
+    { name:"1N5819 (Schottky)", vf:0.35, i_f:1, cost:0.10 },
+    { name:"SS34 (Schottky 3A)", vf:0.5, i_f:3, cost:0.15 },
+  ],
+  "capacitor": [
+    { name:"Electrolytic 100uF (generic)", esr:200, i_rms:0.5, cost:0.15 },
+    { name:"Electrolytic 470uF", esr:100, i_rms:1, cost:0.30 },
+    { name:"Ceramic MLCC 10uF", esr:5, i_rms:0.3, cost:0.10 },
+  ],
+  "inductor": [
+    { name:"Generic 10uH axial", dcr:100, i_dc:1, cost:0.30 },
+    { name:"Generic 47uH shielded", dcr:200, i_dc:0.5, cost:0.50 },
+    { name:"Bourns SRN6045 22uH", dcr:60, i_dc:2, cost:0.80 },
+  ],
+  "resistor": [
+    { name:"Pull-up 10kOhm", r:10000, v_across:3.3, cost:0.01 },
+    { name:"Current sense 0.1 Ohm", r:0.1, i_through:2, cost:0.05 },
+    { name:"LED ballast 330 Ohm", r:330, v_across:7, cost:0.01 },
+  ],
+  "led": [
+    { name:"Standard red 5mm", vf:2.0, i_f:20, efficacy:40, cost:0.05 },
+    { name:"White power LED 1W", vf:3.2, i_f:350, efficacy:80, cost:0.40 },
+    { name:"SMD indicator green", vf:2.1, i_f:10, efficacy:50, cost:0.03 },
+  ],
+  "motor": [
+    { name:"Brushed DC Motor 12V", p_rated:10, eff:70, v:12, i:1.19, cost:5.00 },
+    { name:"Stepper Motor NEMA17", p_rated:5, eff:50, v:12, i:0.83, cost:8.00 },
+    { name:"Brushed DC Fan 5V", p_rated:2, eff:60, v:5, i:0.67, cost:2.00 },
+  ],
+  "relay": [
+    { name:"SRD-05VDC (SPDT)", v_coil:5, i_coil:72, r_contact:50, i_load:5, cost:0.80 },
+    { name:"SRD-12VDC (SPDT)", v_coil:12, i_coil:30, r_contact:50, i_load:10, cost:0.90 },
+    { name:"HF46F (DPDT)", v_coil:12, i_coil:33, r_contact:100, i_load:3, cost:1.50 },
+  ],
+};
+
+const GREEN_ALTS = {
+  "ac-dc":    { name:"GaN PSU (e.g. Navitas/CUI)", eff:93, iq:0.5, cost:9.00, note:"GaN switching reduces size and loss by ~50%" },
+  "dc-dc":    { name:"TPS62A02 (TI, 95% eff)", eff:95, iq:17, cost:2.80, note:"Modern integrated buck with very low quiescent current" },
+  "ldo":      { name:"AP2112K (low dropout, 55uA Iq)", iq:55, dropout:0.25, cost:0.35, note:"Ultra-low Iq saves standby power; low dropout reduces heat" },
+  "transformer":{ name:"Amorphous core transformer", eff:97, cost_mult:1.8, note:"Amorphous metal core cuts core losses by 70-80%" },
+  "mosfet":   { name:"BSC010N04LS (Infineon, 1mOhm)", rds_on:1, qg:40, cost:1.50, note:"Ultra-low Rds(on) drastically cuts conduction loss" },
+  "diode":    { name:"PMEG045V150 (Schottky, 0.25V)", vf:0.25, cost:0.15, note:"Low-Vf Schottky cuts diode loss by 50-65%" },
+  "capacitor":{ name:"Polymer/MLCC (5mOhm ESR)", esr:5, cost_mult:3, note:"Polymer caps have 10-40x lower ESR than electrolytics" },
+  "inductor": { name:"Coilcraft XAL5030 (20mOhm DCR)", dcr:20, cost_mult:2.5, note:"Metal composite inductors have much lower DC resistance" },
+  "resistor": { name:"Lower value / PWM dimming", note:"Replace linear current limiting with PWM for >80% savings on LED/motor drive" },
+  "led":      { name:"High-efficacy LED (150 lm/W)", efficacy:150, cost_mult:2, note:"Modern LEDs produce same light at ~50% less power" },
+  "motor":    { name:"BLDC Motor (90% eff)", eff:90, cost_mult:3, note:"Brushless motors eliminate brush friction losses" },
+  "relay":    { name:"Latching relay (0W hold)", coil_hold:0, cost:3.50, note:"Latching relays only need a pulse to switch, zero holding power" },
+};
+
+/* ═══════════════════════════════════════════════════════
+   LOSS CALCULATORS
+   ═══════════════════════════════════════════════════════ */
+
+function calcLoss(c) {
+  const fn = LOSS_FN[c.type];
+  return fn ? fn(c) : { loss: 0, eff: 100, p_in: 0, p_out: 0 };
+}
+
+const LOSS_FN = {
+  "ac-dc": c => {
+    const p_out = c.v_out * c.i_out;
+    const eff = c.eff / 100;
+    const p_in = p_out / eff;
+    const loss = p_in - p_out + (c.v_in * c.iq / 1000);
+    return { loss, eff: c.eff, p_in, p_out };
+  },
+  "dc-dc": c => {
+    const p_out = c.v_out * c.i_out;
+    const eff = c.eff / 100;
+    const p_in = p_out / eff;
+    const iq_w = c.v_in * (c.iq / 1e6);
+    const loss = p_in - p_out + iq_w;
+    return { loss, eff: c.eff, p_in, p_out };
+  },
+  "ldo": c => {
+    const iq_a = c.iq / 1e6;
+    const dropout_loss = (c.v_in - c.v_out) * c.i_out;
+    const iq_loss = c.v_in * iq_a;
+    const loss = dropout_loss + iq_loss;
+    const p_out = c.v_out * c.i_out;
+    const p_in = p_out + loss;
+    const eff = p_in > 0 ? (p_out / p_in) * 100 : 0;
+    return { loss, eff, p_in, p_out };
+  },
+  "transformer": c => {
+    const loss = c.p_core + c.p_copper;
+    return { loss, eff: c.eff, p_in: 0, p_out: 0 };
+  },
+  "mosfet": c => {
+    const rds = c.rds_on / 1000;
+    const p_cond = c.i_d * c.i_d * rds;
+    const p_sw = c.qg * 1e-9 * c.v_gs * c.f_sw * 1000;
+    const loss = p_cond + p_sw;
+    return { loss, eff: null, p_in: 0, p_out: 0, p_cond, p_sw };
+  },
+  "diode": c => {
+    const loss = c.vf * c.i_f;
+    return { loss, eff: null, p_in: 0, p_out: 0 };
+  },
+  "capacitor": c => {
+    const esr = c.esr / 1000;
+    const loss = c.i_rms * c.i_rms * esr;
+    return { loss, eff: null, p_in: 0, p_out: 0 };
+  },
+  "inductor": c => {
+    const dcr = c.dcr / 1000;
+    const loss = c.i_dc * c.i_dc * dcr;
+    return { loss, eff: null, p_in: 0, p_out: 0 };
+  },
+  "resistor": c => {
+    let loss;
+    if (c.i_through !== undefined && c.i_through > 0) {
+      loss = c.i_through * c.i_through * c.r;
+    } else {
+      loss = (c.v_across * c.v_across) / c.r;
+    }
+    return { loss, eff: null, p_in: 0, p_out: 0 };
+  },
+  "led": c => {
+    const i_a = c.i_f / 1000;
+    const p_total = c.vf * i_a;
+    const loss = p_total; // all electrical power is "consumed"
+    return { loss, eff: null, p_in: 0, p_out: 0 };
+  },
+  "motor": c => {
+    const eff = c.eff / 100;
+    const p_in = c.v * c.i;
+    const loss = p_in * (1 - eff);
+    return { loss, eff: c.eff, p_in, p_out: p_in * eff };
+  },
+  "relay": c => {
+    const p_coil = c.v_coil * (c.i_coil / 1000);
+    const p_contact = c.i_load * c.i_load * (c.r_contact / 1000);
+    const loss = p_coil + p_contact;
+    return { loss, eff: null, p_in: 0, p_out: 0, p_coil, p_contact };
+  },
+};
+
+/* Calculate alternative loss */
+function calcAltLoss(c) {
+  const alt = GREEN_ALTS[c.type];
+  if (!alt) return null;
+  // Build a modified component with green alt parameters
+  const a = { ...c };
+  switch (c.type) {
+    case "ac-dc":
+      a.eff = alt.eff; a.iq = alt.iq; break;
+    case "dc-dc":
+      a.eff = alt.eff; a.iq = alt.iq; break;
+    case "ldo":
+      a.iq = alt.iq;
+      if (alt.dropout !== undefined) a.v_in = a.v_out + alt.dropout;
+      break;
+    case "transformer":
+      a.eff = alt.eff; a.p_core = c.p_core * 0.25; a.p_copper = c.p_copper * 0.8; break;
+    case "mosfet":
+      a.rds_on = alt.rds_on; a.qg = alt.qg; break;
+    case "diode":
+      a.vf = alt.vf; break;
+    case "capacitor":
+      a.esr = alt.esr; break;
+    case "inductor":
+      a.dcr = alt.dcr; break;
+    case "resistor":
+      return { loss: calcLoss(c).loss * 0.2, altCost: c.cost }; // PWM approach saves ~80%
+    case "led":
+      // Same light at lower power: scale current by efficacy ratio
+      const ratio = c.efficacy / alt.efficacy;
+      a.i_f = c.i_f * ratio;
+      break;
+    case "motor":
+      a.eff = alt.eff;
+      a.i = c.v > 0 ? (c.v * c.i * (c.eff/100)) / (a.eff/100) / c.v : c.i; // same mechanical output
+      break;
+    case "relay":
+      return { loss: c.i_load * c.i_load * (c.r_contact / 1000), altCost: alt.cost || c.cost * 2 }; // zero coil power
+  }
+  const result = calcLoss(a);
+  const altCost = alt.cost !== undefined ? alt.cost : (alt.cost_mult ? c.cost * alt.cost_mult : c.cost);
+  return { loss: result.loss, eff: result.eff, altCost };
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════ */
+let components = [];
+let compIdCounter = 0;
+let lastAnalysis = null;
+
+/* ═══════════════════════════════════════════════════════
+   UI: Component Forms
+   ═══════════════════════════════════════════════════════ */
+
+const FIELD_DEFS = {
+  "ac-dc":    [["v_in","Input V","V"],["v_out","Output V","V"],["i_out","Output A","A"],["eff","Efficiency","%"],["iq","Quiescent I","mA"],["cost","Cost","$"]],
+  "dc-dc":    [["v_in","Input V","V"],["v_out","Output V","V"],["i_out","Output A","A"],["eff","Efficiency","%"],["iq","Quiescent I","uA"],["cost","Cost","$"]],
+  "ldo":      [["v_in","Input V","V"],["v_out","Output V","V"],["i_out","Output A","A"],["iq","Quiescent I","uA"],["cost","Cost","$"]],
+  "transformer":[["eff","Efficiency","%"],["p_core","Core Loss","W"],["p_copper","Copper Loss","W"],["cost","Cost","$"]],
+  "mosfet":   [["rds_on","Rds(on)","mOhm"],["qg","Gate Charge","nC"],["i_d","Drain Current","A"],["f_sw","Switch Freq","kHz"],["v_gs","Gate Voltage","V"],["cost","Cost","$"]],
+  "diode":    [["vf","Forward V","V"],["i_f","Forward I","A"],["cost","Cost","$"]],
+  "capacitor":[["esr","ESR","mOhm"],["i_rms","Ripple I","A"],["cost","Cost","$"]],
+  "inductor": [["dcr","DCR","mOhm"],["i_dc","DC Current","A"],["cost","Cost","$"]],
+  "resistor": [["r","Resistance","Ohm"],["v_across","Voltage across","V"],["cost","Cost","$"]],
+  "led":      [["vf","Forward V","V"],["i_f","Forward I","mA"],["efficacy","Efficacy","lm/W"],["cost","Cost","$"]],
+  "motor":    [["v","Voltage","V"],["i","Current","A"],["eff","Efficiency","%"],["cost","Cost","$"]],
+  "relay":    [["v_coil","Coil V","V"],["i_coil","Coil I","mA"],["r_contact","Contact R","mOhm"],["i_load","Load I","A"],["cost","Cost","$"]],
+};
+
+function addComponent(type, presetIdx) {
+  const id = ++compIdCounter;
+  const preset = PRESETS[type] && PRESETS[type][presetIdx || 0] ? { ...PRESETS[type][presetIdx || 0] } : {};
+  const comp = { id, type, name: preset.name || COMP_TYPES[type].label, ...preset };
+  components.push(comp);
+  renderCompList();
+}
+
+function removeComponent(id) {
+  components = components.filter(c => c.id !== id);
+  renderCompList();
+}
+
+function renderCompList() {
+  const list = document.getElementById("comp-list");
+  const empty = document.getElementById("comp-empty");
+  if (components.length === 0) {
+    list.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  let html = "";
+  components.forEach(c => {
+    const fields = FIELD_DEFS[c.type] || [];
+    const presets = PRESETS[c.type] || [];
+    const typeInfo = COMP_TYPES[c.type];
+    const lossInfo = calcLoss(c);
+    const lossClass = lossInfo.loss < 0.1 ? "good" : lossInfo.loss > 5 ? "bad" : "";
+
+    html += `<div class="comp-card" data-id="${c.id}">`;
+    html += `<h4><span>${typeInfo.label} — ${c.name}</span><button class="danger" onclick="removeComponent(${c.id})">Remove</button></h4>`;
+
+    // Preset selector
+    if (presets.length > 0) {
+      html += `<div class="field" style="margin-bottom:.75rem"><label>Preset</label><select onchange="applyPreset(${c.id},this.value)">`;
+      presets.forEach((p, i) => {
+        const sel = p.name === c.name ? " selected" : "";
+        html += `<option value="${i}"${sel}>${p.name}</option>`;
+      });
+      html += `</select></div>`;
+    }
+
+    // Parameter fields
+    const cols = fields.length <= 3 ? "row-3" : fields.length <= 4 ? "row-4" : "row-3";
+    html += `<div class="row ${cols}">`;
+    fields.forEach(([key, label, unit]) => {
+      const val = c[key] !== undefined ? c[key] : "";
+      html += `<div class="field"><label>${label} <span class="hint">(${unit})</span></label>`;
+      html += `<input type="number" step="any" min="0" value="${val}" onchange="updateParam(${c.id},'${key}',this.value)" oninput="updateParam(${c.id},'${key}',this.value)"></div>`;
+    });
+    html += `</div>`;
+
+    // Live loss display
+    html += `<div class="comp-loss ${lossClass}">`;
+    html += `Estimated power loss: ${lossInfo.loss.toFixed(4)} W`;
+    if (lossInfo.eff !== null) html += ` &nbsp;|&nbsp; Efficiency: ${lossInfo.eff.toFixed(1)}%`;
+    if (typeInfo.inPath) html += ` &nbsp;|&nbsp; <em>In power conversion path</em>`;
+    html += `</div>`;
+    html += `</div>`;
+  });
+  list.innerHTML = html;
+}
+
+function applyPreset(id, idx) {
+  const comp = components.find(c => c.id === id);
+  if (!comp) return;
+  const preset = PRESETS[comp.type][parseInt(idx)];
+  if (!preset) return;
+  Object.assign(comp, preset);
+  renderCompList();
+}
+
+function updateParam(id, key, val) {
+  const comp = components.find(c => c.id === id);
+  if (!comp) return;
+  comp[key] = parseFloat(val) || 0;
+  // Update just the loss display for this component (avoid full re-render flicker)
+  const card = document.querySelector(`.comp-card[data-id="${id}"]`);
+  if (card) {
+    const lossEl = card.querySelector(".comp-loss");
+    const lossInfo = calcLoss(comp);
+    const lossClass = lossInfo.loss < 0.1 ? "good" : lossInfo.loss > 5 ? "bad" : "";
+    const typeInfo = COMP_TYPES[comp.type];
+    lossEl.className = `comp-loss ${lossClass}`;
+    let text = `Estimated power loss: ${lossInfo.loss.toFixed(4)} W`;
+    if (lossInfo.eff !== null) text += ` &nbsp;|&nbsp; Efficiency: ${lossInfo.eff.toFixed(1)}%`;
+    if (typeInfo.inPath) text += ` &nbsp;|&nbsp; <em>In power conversion path</em>`;
+    lossEl.innerHTML = text;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DEMO BOARD
+   ═══════════════════════════════════════════════════════ */
+function loadDemo() {
+  components = [];
+  compIdCounter = 0;
+  // Typical IoT sensor board: AC-DC -> DC-DC -> LDO, plus supporting components
+  [
+    ["ac-dc", 0],    // Generic 12V/2A SMPS
+    ["dc-dc", 0],    // LM2596 Buck 3.3V
+    ["ldo", 1],      // AMS1117-3.3
+    ["mosfet", 0],   // IRF540N
+    ["diode", 0],    // 1N4007
+    ["capacitor", 0],// Electrolytic 100uF
+    ["inductor", 0], // Generic 10uH
+    ["resistor", 2], // LED ballast 330 Ohm
+    ["led", 0],      // Standard red 5mm
+    ["relay", 0],    // SRD-05VDC
+  ].forEach(([type, pi]) => addComponent(type, pi));
+  renderCompList();
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANALYSIS ENGINE
+   ═══════════════════════════════════════════════════════ */
+function analyzeBoard() {
+  if (components.length === 0) return;
+
+  const hours = parseFloat(document.getElementById("board-hours").value) || 24;
+  const elecCost = parseFloat(document.getElementById("board-elec").value) || 0.12;
+  const units = parseInt(document.getElementById("board-units").value) || 1;
+
+  const results = components.map(c => {
+    const cur = calcLoss(c);
+    const altResult = calcAltLoss(c);
+    const alt = GREEN_ALTS[c.type];
+    return {
+      comp: c,
+      type: c.type,
+      typeLabel: COMP_TYPES[c.type].label,
+      inPath: COMP_TYPES[c.type].inPath,
+      name: c.name,
+      curLoss: cur.loss,
+      curEff: cur.eff,
+      curCost: c.cost || 0,
+      altName: alt ? alt.name : "—",
+      altNote: alt ? alt.note : "",
+      altLoss: altResult ? altResult.loss : cur.loss,
+      altEff: altResult && altResult.eff !== undefined ? altResult.eff : cur.eff,
+      altCost: altResult ? (altResult.altCost !== undefined ? altResult.altCost : c.cost) : c.cost,
+      lossSaved: altResult ? cur.loss - altResult.loss : 0,
+    };
+  });
+
+  const totalCurLoss = results.reduce((s, r) => s + r.curLoss, 0);
+  const totalAltLoss = results.reduce((s, r) => s + r.altLoss, 0);
+  const totalCurCost = results.reduce((s, r) => s + r.curCost, 0);
+  const totalAltCost = results.reduce((s, r) => s + r.altCost, 0);
+
+  // Efficiency chain (power path components only)
+  const pathComps = results.filter(r => r.inPath && r.curEff !== null);
+  const curChainEff = pathComps.length > 0 ? pathComps.reduce((e, r) => e * (r.curEff / 100), 1) * 100 : 100;
+  const altChainEff = pathComps.length > 0 ? pathComps.reduce((e, r) => {
+    const ae = r.altEff !== null && r.altEff !== undefined ? r.altEff : r.curEff;
+    return e * (ae / 100);
+  }, 1) * 100 : 100;
+
+  const hoursPerYear = hours * 365.25;
+  const curAnnualEnergy = (totalCurLoss / 1000) * hoursPerYear; // kWh
+  const altAnnualEnergy = (totalAltLoss / 1000) * hoursPerYear;
+  const curAnnualCost = curAnnualEnergy * elecCost * units;
+  const altAnnualCost = altAnnualEnergy * elecCost * units;
+  const annualSaving = curAnnualCost - altAnnualCost;
+  const upgradeCost = (totalAltCost - totalCurCost) * units;
+  const payback = annualSaving > 0 ? upgradeCost / annualSaving : Infinity;
+  const co2Saved = (curAnnualEnergy - altAnnualEnergy) * 0.42 * units; // kg CO2
+
+  lastAnalysis = {
+    results, totalCurLoss, totalAltLoss, totalCurCost, totalAltCost,
+    curChainEff, altChainEff, pathComps,
+    hoursPerYear, curAnnualEnergy, altAnnualEnergy,
+    curAnnualCost, altAnnualCost, annualSaving,
+    upgradeCost, payback, co2Saved, units, elecCost
+  };
+
+  renderAnalysis(lastAnalysis);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER RESULTS
+   ═══════════════════════════════════════════════════════ */
+function effClass(e) { return e >= 90 ? "green" : e >= 80 ? "yellow" : e >= 70 ? "orange" : "red"; }
+const cur$ = v => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function renderAnalysis(a) {
+  // Efficiency chain
+  let h = `<h2>Efficiency Chain (Power Path)</h2>`;
+  if (a.pathComps.length === 0) {
+    h += `<p style="color:var(--muted)">No power-path components (AC-DC, DC-DC, LDO, transformer) added.</p>`;
+  } else {
+    h += `<h3>Current Design</h3><div class="eff-chain">`;
+    a.pathComps.forEach((r, i) => {
+      if (i > 0) h += `<span class="eff-arrow">&#10132;</span>`;
+      h += `<div class="eff-block ${effClass(r.curEff)}"><div class="eff-name" title="${r.name}">${r.name}</div><div class="eff-val">${r.curEff.toFixed(1)}%</div></div>`;
+    });
+    h += `<span class="eff-arrow">&#10132;</span><div class="eff-total"><div class="eff-name">TOTAL</div><div class="eff-val">${a.curChainEff.toFixed(1)}%</div></div></div>`;
+
+    h += `<h3 style="margin-top:1rem">With Green Alternatives</h3><div class="eff-chain">`;
+    a.pathComps.forEach((r, i) => {
+      const ae = r.altEff !== null ? r.altEff : r.curEff;
+      if (i > 0) h += `<span class="eff-arrow">&#10132;</span>`;
+      h += `<div class="eff-block ${effClass(ae)}"><div class="eff-name" title="${r.altName}">${r.altName}</div><div class="eff-val">${ae.toFixed(1)}%</div></div>`;
+    });
+    h += `<span class="eff-arrow">&#10132;</span><div class="eff-total"><div class="eff-name">TOTAL</div><div class="eff-val">${a.altChainEff.toFixed(1)}%</div></div></div>`;
+
+    const improvement = a.altChainEff - a.curChainEff;
+    h += `<div class="highlight" style="background:${improvement > 0 ? "var(--success-light);color:#166534" : "var(--warning-light);color:#854d0e"}">`;
+    h += `Chain efficiency improvement: <strong>+${improvement.toFixed(1)} percentage points</strong> (${a.curChainEff.toFixed(1)}% → ${a.altChainEff.toFixed(1)}%)</div>`;
+  }
+  document.getElementById("res-chain").innerHTML = h;
+
+  // Power loss breakdown
+  let b = `<h2>Power Loss Breakdown</h2>`;
+  b += `<table><thead><tr><th>Component</th><th>Type</th><th>Current Loss (W)</th><th>% of Total</th><th>Alt. Loss (W)</th><th>Saving (W)</th></tr></thead><tbody>`;
+  // Sort by loss descending
+  const sorted = [...a.results].sort((x, y) => y.curLoss - x.curLoss);
+  sorted.forEach(r => {
+    const pct = a.totalCurLoss > 0 ? (r.curLoss / a.totalCurLoss * 100).toFixed(1) : "0.0";
+    const savPct = r.curLoss > 0 ? ((r.lossSaved / r.curLoss) * 100).toFixed(0) : "0";
+    b += `<tr><td>${r.name}</td><td>${r.typeLabel}</td><td>${r.curLoss.toFixed(4)}</td><td>${pct}%</td><td>${r.altLoss.toFixed(4)}</td><td>${r.lossSaved.toFixed(4)} (${savPct}%)</td></tr>`;
+  });
+  b += `</tbody></table>`;
+  b += `<div class="stat"><span class="stat-label">Total current power loss</span><span class="stat-value">${a.totalCurLoss.toFixed(4)} W</span></div>`;
+  b += `<div class="stat"><span class="stat-label">Total optimised power loss</span><span class="stat-value">${a.totalAltLoss.toFixed(4)} W</span></div>`;
+  b += `<div class="stat"><span class="stat-label">Total power saved</span><span class="stat-value">${(a.totalCurLoss - a.totalAltLoss).toFixed(4)} W (${a.totalCurLoss > 0 ? ((1 - a.totalAltLoss/a.totalCurLoss)*100).toFixed(1) : 0}%)</span></div>`;
+  document.getElementById("res-breakdown").innerHTML = b;
+
+  // Green alternatives table
+  let g = `<h2>Green Alternative Recommendations</h2>`;
+  g += `<table><thead><tr><th>Current Component</th><th>Suggested Alternative</th><th>Loss Reduction</th><th>Cost Change</th><th>Notes</th></tr></thead><tbody>`;
+  a.results.forEach(r => {
+    const costDiff = r.altCost - r.curCost;
+    const costStr = costDiff > 0 ? `+$${costDiff.toFixed(2)}` : costDiff < 0 ? `-$${Math.abs(costDiff).toFixed(2)}` : "$0.00";
+    const savStr = r.lossSaved > 0 ? `${r.lossSaved.toFixed(4)} W (${r.curLoss > 0 ? ((r.lossSaved/r.curLoss)*100).toFixed(0) : 0}%)` : "—";
+    g += `<tr><td>${r.name}</td><td>${r.altName}</td><td>${savStr}</td><td>${costStr}</td><td style="font-size:.8rem;color:var(--muted)">${r.altNote}</td></tr>`;
+  });
+  g += `</tbody></table>`;
+  document.getElementById("res-alts").innerHTML = g;
+
+  // Cost analysis
+  let c = `<h2>Cost Analysis &amp; Savings</h2>`;
+  if (a.units > 1) c += `<div class="analysis">Calculations scaled for <strong>${a.units} deployed units</strong>.</div>`;
+
+  c += `<div class="savings-grid">`;
+  c += `<div class="highlight" style="background:var(--success-light);color:#166534">Annual Energy Saving<br><strong>${cur$(a.curAnnualEnergy - a.altAnnualEnergy)} kWh</strong><br><span style="font-size:.85rem;font-weight:400">$${cur$(a.annualSaving)}/year</span></div>`;
+  c += `<div class="highlight" style="background:var(--primary-light);color:#1e40af">Payback Period<br><strong>${a.payback === Infinity ? "N/A" : a.payback < 0 ? "Immediate" : a.payback.toFixed(1) + " years"}</strong><br><span style="font-size:.85rem;font-weight:400">Upgrade cost: $${cur$(a.upgradeCost > 0 ? a.upgradeCost : 0)}</span></div>`;
+  c += `<div class="highlight" style="background:var(--warning-light);color:#854d0e">CO₂ Reduction<br><strong>${a.co2Saved.toFixed(2)} kg/year</strong><br><span style="font-size:.85rem;font-weight:400">@ 0.42 kg CO₂/kWh avg</span></div>`;
+  c += `<div class="highlight" style="background:#f0fdf4;color:#166534">5-Year Net Saving<br><strong>$${cur$(a.annualSaving * 5 - (a.upgradeCost > 0 ? a.upgradeCost : 0))}</strong><br><span style="font-size:.85rem;font-weight:400">After component upgrade cost</span></div>`;
+  c += `</div>`;
+
+  c += `<h3 style="margin-top:1rem">Component Cost Comparison</h3>`;
+  c += `<div class="stat"><span class="stat-label">Current total component cost</span><span class="stat-value">$${cur$(a.totalCurCost)}</span></div>`;
+  c += `<div class="stat"><span class="stat-label">Alternative total component cost</span><span class="stat-value">$${cur$(a.totalAltCost)}</span></div>`;
+  c += `<div class="stat"><span class="stat-label">Upfront cost difference (per unit)</span><span class="stat-value">$${cur$(a.totalAltCost - a.totalCurCost)}</span></div>`;
+
+  c += `<h3 style="margin-top:1.25rem">Where to Prioritise</h3>`;
+  c += `<div class="analysis good">`;
+  const topSavers = [...a.results].sort((x, y) => y.lossSaved - x.lossSaved).filter(r => r.lossSaved > 0).slice(0, 3);
+  if (topSavers.length > 0) {
+    c += `<strong>Top components to upgrade first:</strong><br>`;
+    topSavers.forEach((r, i) => {
+      const annualCompSaving = (r.lossSaved / 1000) * a.hoursPerYear * a.elecCost * a.units;
+      c += `${i+1}. <strong>${r.name}</strong> → ${r.altName}: saves ${r.lossSaved.toFixed(4)} W ($${cur$(annualCompSaving)}/yr)<br>`;
+    });
+  } else {
+    c += `No significant savings identified. Your board is already well optimised.`;
+  }
+  c += `</div>`;
+  document.getElementById("res-cost").innerHTML = c;
+
+  // Charts
+  renderCharts(a);
+
+  document.getElementById("results").classList.add("visible");
+  document.getElementById("res-chain").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHARTS (Canvas 2D)
+   ═══════════════════════════════════════════════════════ */
+
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function niceScale(min, max, ticks) {
+  if (max <= min) max = min + 1;
+  const range = max - min;
+  const exp = Math.floor(Math.log10(range));
+  const frac = range / Math.pow(10, exp);
+  let step;
+  if (frac <= 1.5) step = 0.2; else if (frac <= 3) step = 0.5; else if (frac <= 7) step = 1; else step = 2;
+  step *= Math.pow(10, exp);
+  const nMin = Math.floor(min / step) * step;
+  const nMax = Math.ceil(max / step) * step;
+  const arr = [];
+  for (let v = nMin; v <= nMax + step * 0.1; v += step) arr.push(parseFloat(v.toPrecision(10)));
+  return { min: nMin, max: nMax, ticks: arr };
+}
+
+function fmtV(v) {
+  const a = Math.abs(v);
+  if (a === 0) return "0";
+  if (a >= 1000) return v.toFixed(0);
+  if (a >= 1) return v.toFixed(2);
+  if (a >= 0.01) return v.toFixed(4);
+  return v.toExponential(2);
+}
+
+function renderCharts(a) {
+  let html = `<h2>Charts</h2><div class="chart-grid">`;
+  html += `<div class="chart-container"><div class="chart-title">Power Loss: Current vs Optimised</div><div class="chart-subtitle">Side-by-side comparison per component (Watts)</div><canvas id="ch-loss" width="900" height="420"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Potential Savings by Component</div><div class="chart-subtitle">Power saving achievable with green alternatives (Watts)</div><canvas id="ch-saving" width="900" height="400"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Cost: Current Annual vs Optimised Annual</div><div class="chart-subtitle">Annual electricity cost comparison</div><canvas id="ch-cost" width="900" height="350"></canvas></div>`;
+  html += `</div>`;
+  document.getElementById("res-charts").innerHTML = html;
+
+  requestAnimationFrame(() => {
+    drawComparisonBars("ch-loss", a);
+    drawSavingsBars("ch-saving", a);
+    drawCostComparison("ch-cost", a);
+  });
+}
+
+function drawComparisonBars(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 80, left: 85 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+  const n = a.results.length;
+  const groupW = pW / n;
+  const barW = groupW * 0.35;
+
+  const maxVal = Math.max(...a.results.map(r => Math.max(r.curLoss, r.altLoss))) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText(fmtV(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  a.results.forEach((r, i) => {
+    const gx = pad.left + i * groupW;
+    // Current bar
+    const ch = ((r.curLoss - scale.min) / (scale.max - scale.min)) * pH;
+    const cy = pad.top + pH - ch;
+    ctx.fillStyle = "rgba(239,68,68,.7)";
+    ctx.beginPath(); ctx.roundRect(gx + 2, cy, barW, ch, [4,4,0,0]); ctx.fill();
+    ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(gx + 2, cy, barW, ch, [4,4,0,0]); ctx.stroke();
+
+    // Alt bar
+    const ah = ((r.altLoss - scale.min) / (scale.max - scale.min)) * pH;
+    const ay = pad.top + pH - ah;
+    ctx.fillStyle = "rgba(22,163,74,.7)";
+    ctx.beginPath(); ctx.roundRect(gx + barW + 4, ay, barW, ah, [4,4,0,0]); ctx.fill();
+    ctx.strokeStyle = "#16a34a"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(gx + barW + 4, ay, barW, ah, [4,4,0,0]); ctx.stroke();
+
+    // Values
+    ctx.fillStyle = "#1e293b"; ctx.font = "bold 10px -apple-system, sans-serif"; ctx.textAlign = "center";
+    if (ch > 15) ctx.fillText(fmtV(r.curLoss), gx + 2 + barW/2, cy - 5);
+    if (ah > 15) ctx.fillText(fmtV(r.altLoss), gx + barW + 4 + barW/2, ay - 5);
+
+    // X label
+    ctx.fillStyle = "#64748b"; ctx.font = "11px -apple-system, sans-serif";
+    ctx.save();
+    ctx.translate(gx + groupW/2, pad.top + pH + 10);
+    ctx.rotate(-Math.PI / 5);
+    ctx.textAlign = "right";
+    const shortName = r.name.length > 18 ? r.name.substring(0, 16) + "..." : r.name;
+    ctx.fillText(shortName, 0, 0);
+    ctx.restore();
+  });
+
+  // Legend
+  ctx.fillStyle = "rgba(239,68,68,.7)";
+  ctx.fillRect(pad.left, pad.top - 18, 12, 12);
+  ctx.fillStyle = "#334155"; ctx.font = "bold 12px -apple-system, sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("Current", pad.left + 16, pad.top - 8);
+  ctx.fillStyle = "rgba(22,163,74,.7)";
+  ctx.fillRect(pad.left + 90, pad.top - 18, 12, 12);
+  ctx.fillStyle = "#334155";
+  ctx.fillText("Optimised", pad.left + 106, pad.top - 8);
+
+  // Y title
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Power Loss (W)", 0, 0); ctx.restore();
+}
+
+function drawSavingsBars(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 80, left: 85 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+  const sorted = [...a.results].sort((x, y) => y.lossSaved - x.lossSaved);
+  const n = sorted.length;
+  const gap = pW / n;
+  const barW = gap * 0.6;
+
+  const maxVal = Math.max(...sorted.map(r => r.lossSaved), 0.001) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText(fmtV(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  sorted.forEach((r, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const bh = ((Math.max(r.lossSaved, 0) - scale.min) / (scale.max - scale.min)) * pH;
+    const y = pad.top + pH - bh;
+    const color = r.lossSaved > 0 ? "#16a34a" : "#94a3b8";
+    const light = r.lossSaved > 0 ? "rgba(22,163,74,.15)" : "rgba(148,163,184,.15)";
+
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + pH);
+    grad.addColorStop(0, color); grad.addColorStop(1, light);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [5,5,0,0]); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [5,5,0,0]); ctx.stroke();
+
+    if (bh > 15) {
+      ctx.fillStyle = "#1e293b"; ctx.font = "bold 11px -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(fmtV(r.lossSaved), x + barW / 2, y - 6);
+    }
+
+    ctx.fillStyle = "#64748b"; ctx.font = "11px -apple-system, sans-serif";
+    ctx.save(); ctx.translate(x + barW / 2, pad.top + pH + 10); ctx.rotate(-Math.PI / 5); ctx.textAlign = "right";
+    const sn = r.name.length > 18 ? r.name.substring(0, 16) + "..." : r.name;
+    ctx.fillText(sn, 0, 0); ctx.restore();
+  });
+
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Saving (W)", 0, 0); ctx.restore();
+}
+
+function drawCostComparison(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 50, left: 85 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+
+  const bars = [
+    { label: "Current Annual", value: a.curAnnualCost, color: "#64748b", light: "rgba(100,116,139,.15)" },
+    { label: "Optimised Annual", value: a.altAnnualCost, color: "#16a34a", light: "rgba(22,163,74,.15)" },
+  ];
+  const maxVal = Math.max(...bars.map(b => b.value), 0.01) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+  const gap = pW / bars.length;
+  const barW = gap * 0.4;
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText("$" + fmtV(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  bars.forEach((b, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const bh = ((b.value - scale.min) / (scale.max - scale.min)) * pH;
+    const y = pad.top + pH - bh;
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + pH);
+    grad.addColorStop(0, b.color); grad.addColorStop(1, b.light);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [6,6,0,0]); ctx.fill();
+    ctx.strokeStyle = b.color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [6,6,0,0]); ctx.stroke();
+
+    ctx.fillStyle = "#1e293b"; ctx.font = "bold 14px -apple-system, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("$" + cur$(b.value), x + barW / 2, y - 10);
+    ctx.fillStyle = b.color; ctx.font = "bold 13px -apple-system, sans-serif";
+    ctx.fillText(b.label, x + barW / 2, pad.top + pH + 22);
+  });
+
+  // Saving annotation
+  if (a.annualSaving > 0) {
+    const savPct = ((a.annualSaving / a.curAnnualCost) * 100).toFixed(1);
+    ctx.fillStyle = "#16a34a"; ctx.font = "bold 14px -apple-system, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(`Save $${cur$(a.annualSaving)}/yr (${savPct}%)`, pad.left + pW / 2, pad.top - 8);
+  }
+
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Annual Cost ($)", 0, 0); ctx.restore();
+}
+
+/* ═══════════════════════════════════════════════════════
+   CSV EXPORT
+   ═══════════════════════════════════════════════════════ */
+function downloadCSV() {
+  if (!lastAnalysis) return;
+  const a = lastAnalysis;
+  const rows = [];
+  rows.push(["Electrical Board Efficiency Analysis Report"]);
+  rows.push([]);
+  rows.push(["Power Loss Breakdown"]);
+  rows.push(["Component","Type","Current Loss (W)","% of Total","Alt Loss (W)","Saving (W)","Saving %","Current Cost ($)","Alt Cost ($)"]);
+  a.results.forEach(r => {
+    const pct = a.totalCurLoss > 0 ? (r.curLoss / a.totalCurLoss * 100).toFixed(1) : "0";
+    const spct = r.curLoss > 0 ? ((r.lossSaved / r.curLoss) * 100).toFixed(0) : "0";
+    rows.push([r.name, r.typeLabel, r.curLoss.toFixed(4), pct, r.altLoss.toFixed(4), r.lossSaved.toFixed(4), spct, r.curCost.toFixed(2), r.altCost.toFixed(2)]);
+  });
+  rows.push([]);
+  rows.push(["Summary"]);
+  rows.push(["Total Current Loss (W)", a.totalCurLoss.toFixed(4)]);
+  rows.push(["Total Optimised Loss (W)", a.totalAltLoss.toFixed(4)]);
+  rows.push(["Current Chain Efficiency (%)", a.curChainEff.toFixed(1)]);
+  rows.push(["Optimised Chain Efficiency (%)", a.altChainEff.toFixed(1)]);
+  rows.push(["Annual Energy - Current (kWh)", a.curAnnualEnergy.toFixed(2)]);
+  rows.push(["Annual Energy - Optimised (kWh)", a.altAnnualEnergy.toFixed(2)]);
+  rows.push(["Annual Cost - Current ($)", a.curAnnualCost.toFixed(2)]);
+  rows.push(["Annual Cost - Optimised ($)", a.altAnnualCost.toFixed(2)]);
+  rows.push(["Annual Saving ($)", a.annualSaving.toFixed(2)]);
+  rows.push(["Upgrade Cost ($)", (a.upgradeCost > 0 ? a.upgradeCost : 0).toFixed(2)]);
+  rows.push(["Payback Period (years)", a.payback === Infinity ? "N/A" : a.payback.toFixed(1)]);
+  rows.push(["CO2 Saved (kg/year)", a.co2Saved.toFixed(2)]);
+
+  const csv = rows.map(r => r.map(c => {
+    const s = String(c);
+    return s.includes(",") || s.includes('"') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(",")).join("\r\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a2 = document.createElement("a");
+  a2.href = url; a2.download = "board_efficiency_report.csv"; a2.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", () => {
+  // Populate type dropdown
+  const sel = document.getElementById("comp-type");
+  let lastCat = "";
+  Object.entries(COMP_TYPES).forEach(([key, val]) => {
+    if (val.cat !== lastCat) {
+      if (lastCat) { const end = document.createElement("option"); end.disabled = true; end.textContent = "───"; sel.appendChild(end); }
+      lastCat = val.cat;
+    }
+    const opt = document.createElement("option");
+    opt.value = key; opt.textContent = val.label;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById("btn-add").addEventListener("click", () => {
+    addComponent(document.getElementById("comp-type").value);
+  });
+  document.getElementById("btn-demo").addEventListener("click", loadDemo);
+  document.getElementById("btn-analyze").addEventListener("click", analyzeBoard);
+  document.getElementById("btn-csv").addEventListener("click", downloadCSV);
+
+  renderCompList();
+});
+</script>
+</body>
+</html>

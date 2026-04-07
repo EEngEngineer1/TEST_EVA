@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluid Viscosity Calculator — Stokes' Law</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563eb;--primary-hover:#1d4ed8;--primary-light:#dbeafe;
+  --bg:#f8fafc;--card:#fff;--text:#1e293b;--muted:#64748b;
+  --border:#e2e8f0;--success:#16a34a;--warning:#d97706;--error:#dc2626;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--primary)}
+header{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;padding:2rem 1rem;text-align:center}
+header h1{font-size:1.75rem;font-weight:700;letter-spacing:-.02em}
+header p{color:#cbd5e1;margin-top:.25rem;font-size:.95rem}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.card h2{font-size:1.2rem;margin-bottom:1rem;color:var(--primary);display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:1.05rem;margin-bottom:.75rem;color:var(--text)}
+.field{margin-bottom:1rem}
+.field label{display:block;font-weight:600;font-size:.875rem;margin-bottom:.3rem;color:var(--text)}
+.field .hint{font-weight:400;color:var(--muted);font-size:.8rem}
+.field input{width:100%;height:2.5rem;padding:0 .75rem;border:1px solid var(--border);
+  border-radius:8px;font-size:.95rem;color:var(--text);background:#fff;transition:border-color .15s,box-shadow .15s}
+.field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.field input[aria-invalid="true"]{border-color:var(--error)}
+.field .error-msg{color:var(--error);font-size:.8rem;margin-top:.2rem;display:none}
+.field input[aria-invalid="true"]~.error-msg{display:block}
+.computed{background:#f0f9ff;border-radius:8px;padding:.5rem .75rem;margin-top:.5rem;font-size:.85rem;color:var(--muted)}
+.computed span{font-weight:600;color:var(--text)}
+.row{display:grid;gap:1rem}
+.row-2{grid-template-columns:1fr 1fr}
+.row-3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:768px){.row-2,.row-3{grid-template-columns:1fr}}
+.group-card{border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;background:#fafbfc}
+.group-card h3{color:var(--primary)}
+.group-summary{background:var(--primary-light);border-radius:8px;padding:.6rem 1rem;margin-top:.75rem;font-size:.9rem}
+.bearing-card{border:1px solid var(--border);border-radius:8px;padding:1rem;background:#fff}
+.bearing-card h4{font-size:.9rem;margin-bottom:.6rem;color:var(--muted)}
+button.primary{background:var(--primary);color:#fff;border:none;border-radius:8px;
+  padding:.75rem 2rem;font-size:1rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+button.primary:hover{background:var(--primary-hover)}
+button.primary:active{transform:scale(.98)}
+button.primary:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+button.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;
+  padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+button.secondary:hover{background:var(--primary-light)}
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+#results{display:none}
+#results.visible{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.75rem 0}
+th,td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#f8fafc;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+td{font-variant-numeric:tabular-nums}
+.stat{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.stat:last-child{border-bottom:none}
+.stat-label{color:var(--muted)}
+.stat-value{font-weight:600}
+.analysis{border-left:3px solid var(--primary);padding:.75rem 1rem;background:#f0f9ff;border-radius:0 8px 8px 0;margin:.75rem 0;font-size:.9rem;line-height:1.7}
+.analysis.warn{border-left-color:var(--warning);background:#fffbeb}
+.analysis.error-box{border-left-color:var(--error);background:#fef2f2}
+.highlight{background:var(--primary-light);border-radius:6px;padding:.75rem 1rem;font-weight:600;text-align:center;margin:.75rem 0;font-size:1rem}
+.app-list{list-style:none;padding:0}
+.app-list li{padding:.3rem 0 .3rem 1.25rem;position:relative;font-size:.9rem}
+.app-list li::before{content:"";position:absolute;left:0;top:.7rem;width:6px;height:6px;border-radius:50%;background:var(--primary)}
+footer{text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:1rem}
+.chart-container{position:relative}
+.chart-container canvas{width:100%!important;height:auto!important;border-radius:10px;border:1px solid var(--border);background:#fff}
+.chart-title{font-weight:700;font-size:1.05rem;margin-bottom:.5rem;color:var(--text)}
+.chart-subtitle{font-size:.85rem;color:var(--muted);margin-bottom:.75rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fluid Viscosity Calculator</h1>
+  <p>Stokes' Law &mdash; Falling Ball Method</p>
+</header>
+
+<main class="container">
+  <!-- Fluid Properties -->
+  <div class="card">
+    <h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6l3 3-3 3v6"/><path d="M8 8l-3 3 3 3"/></svg> Fluid Properties</h2>
+    <div class="row row-2">
+      <div class="field">
+        <label for="fluid-mass">Mass of fluid <span class="hint">(kg)</span></label>
+        <input type="number" id="fluid-mass" step="any" min="0" placeholder="e.g. 3.4742" aria-describedby="fluid-mass-err">
+        <div class="error-msg" id="fluid-mass-err">Enter a positive number.</div>
+      </div>
+      <div class="field">
+        <label for="fluid-vol">Volume of fluid <span class="hint">(m&sup3;)</span></label>
+        <input type="number" id="fluid-vol" step="any" min="0" placeholder="e.g. 0.001674" aria-describedby="fluid-vol-err">
+        <div class="error-msg" id="fluid-vol-err">Enter a positive number.</div>
+      </div>
+    </div>
+    <div class="computed" aria-live="polite">Fluid density: <span id="fluid-density-live">—</span> kg/m&sup3;</div>
+    <div class="field" style="margin-top:1rem">
+      <label for="fall-dist">Fall distance in fluid <span class="hint">(m)</span></label>
+      <input type="number" id="fall-dist" step="any" min="0" placeholder="e.g. 0.222" aria-describedby="fall-dist-err" style="max-width:320px">
+      <div class="error-msg" id="fall-dist-err">Enter a positive number.</div>
+    </div>
+  </div>
+
+  <!-- Bearing Groups -->
+  <div class="card">
+    <h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg> Ball Bearing Data</h2>
+    <p style="color:var(--muted);font-size:.875rem;margin-bottom:1rem">Enter mass, diameter, and fall time for 3 bearings in each size group.</p>
+    <div id="bearing-groups"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="btn-row">
+    <button class="primary" id="btn-calc" type="button">Calculate Viscosity</button>
+    <button class="secondary" id="btn-sample" type="button">Load Sample Data</button>
+    <button class="secondary" id="btn-clear" type="button">Clear All</button>
+  </div>
+
+  <!-- Results -->
+  <div id="results" aria-live="polite">
+    <div class="btn-row" style="margin-top:0;margin-bottom:.5rem">
+      <button class="secondary" id="btn-csv" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Results as CSV
+      </button>
+    </div>
+    <div class="card" id="results-summary"></div>
+    <div class="card" id="results-comparison"></div>
+    <div class="card" id="results-fluids"></div>
+    <div class="card" id="results-applications"></div>
+    <div class="card" id="results-energy"></div>
+    <div class="card" id="results-charts"></div>
+
+    <!-- Cost Optimization -->
+    <div class="card" id="cost-input-card">
+      <h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Industrial Cost Optimisation</h2>
+      <p style="color:var(--muted);font-size:.875rem;margin-bottom:1rem">Enter your system parameters to estimate pumping costs and find where you can save. Uses Hagen-Poiseuille equation for laminar pipe flow.</p>
+
+      <h3 style="margin-bottom:.75rem">Pipe System</h3>
+      <div class="row row-3">
+        <div class="field">
+          <label for="pipe-dia">Pipe inner diameter <span class="hint">(m)</span></label>
+          <input type="number" id="pipe-dia" step="any" min="0" placeholder="e.g. 0.05" value="0.05">
+        </div>
+        <div class="field">
+          <label for="pipe-len">Pipe length <span class="hint">(m)</span></label>
+          <input type="number" id="pipe-len" step="any" min="0" placeholder="e.g. 100" value="100">
+        </div>
+        <div class="field">
+          <label for="flow-rate">Flow rate <span class="hint">(m&sup3;/s)</span></label>
+          <input type="number" id="flow-rate" step="any" min="0" placeholder="e.g. 0.001" value="0.001">
+        </div>
+      </div>
+
+      <h3 style="margin-top:1rem;margin-bottom:.75rem">Operating Costs</h3>
+      <div class="row row-3">
+        <div class="field">
+          <label for="op-hours">Operating hours <span class="hint">(per year)</span></label>
+          <input type="number" id="op-hours" step="any" min="0" placeholder="e.g. 8760" value="8760">
+        </div>
+        <div class="field">
+          <label for="elec-cost">Electricity cost <span class="hint">(per kWh)</span></label>
+          <input type="number" id="elec-cost" step="any" min="0" placeholder="e.g. 0.12" value="0.12">
+        </div>
+        <div class="field">
+          <label for="pump-eff">Pump efficiency <span class="hint">(%)</span></label>
+          <input type="number" id="pump-eff" step="any" min="1" max="100" placeholder="e.g. 75" value="75">
+        </div>
+      </div>
+
+      <h3 style="margin-top:1rem;margin-bottom:.75rem">Optimisation Scenarios</h3>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.75rem">What-if: model the cost impact of reducing viscosity (e.g. by heating the fluid, adding thinning agents, or switching fluids).</p>
+      <div class="row row-2">
+        <div class="field">
+          <label for="visc-reduce-1">Scenario 1: Viscosity reduction <span class="hint">(%)</span></label>
+          <input type="number" id="visc-reduce-1" step="any" min="0" max="99" placeholder="e.g. 25" value="25">
+        </div>
+        <div class="field">
+          <label for="visc-reduce-2">Scenario 2: Viscosity reduction <span class="hint">(%)</span></label>
+          <input type="number" id="visc-reduce-2" step="any" min="0" max="99" placeholder="e.g. 50" value="50">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="btn-cost" type="button">Calculate Costs &amp; Savings</button>
+      </div>
+    </div>
+
+    <div class="card" id="results-cost" style="display:none"></div>
+  </div>
+</main>
+
+<footer>
+  <p>Stokes' Law: &eta; = 2r&sup2;(&rho;<sub>ball</sub> &minus; &rho;<sub>fluid</sub>)g &frasl; 9v<sub>terminal</sub></p>
+</footer>
+
+<script>
+const G = 9.81;
+const SIZE_LABELS = ["Small", "Medium", "Large"];
+const BEARINGS_PER_GROUP = 3;
+
+const KNOWN_FLUIDS = [
+  ["Air (20 \u00b0C)", 0.000018],
+  ["Water (20 \u00b0C)", 0.001],
+  ["Mercury (20 \u00b0C)", 0.00155],
+  ["Olive oil (20 \u00b0C)", 0.08],
+  ["Engine oil SAE 30", 0.2],
+  ["Glycerol (25 \u00b0C)", 0.95],
+  ["Golden syrup", 5.0],
+  ["Honey (20 \u00b0C)", 5.0],
+  ["Ketchup", 10.0],
+  ["Peanut butter", 250.0],
+  ["Tar / bitumen (20 \u00b0C)", 30000.0],
+];
+
+const SAMPLE_DATA = {
+  fluidMass: 3.4742, fluidVol: 0.001674, fallDist: 0.222,
+  groups: [
+    [{mass:0.00010828,diameter:0.00297,time:21.444},{mass:0.0001068,diameter:0.003,time:21.027},{mass:4.669e-05,diameter:0.00225,time:14.767}],
+    [{mass:0.00485694,diameter:0.01056,time:21.753},{mass:0.00558638,diameter:0.01117,time:18.845},{mass:0.00261683,diameter:0.00856,time:2.3}],
+    [{mass:0.03187404,diameter:0.01991,time:26.725},{mass:0.01371365,diameter:0.01493,time:13.446},{mass:0.01709954,diameter:0.01599,time:9.67}],
+  ]
+};
+
+let lastCalcData = null; // stored after each calculation for CSV export
+
+/* ── Math ── */
+function bearingVolume(d) { return (4/3) * Math.PI * Math.pow(d/2, 3); }
+function fluidDensity(m, v) { return m / v; }
+function stokesViscosity(r, rhoB, rhoF, dist, time) {
+  const vt = dist / time;
+  return (2 * r * r * (rhoB - rhoF) * G) / (9 * vt);
+}
+
+/* ── Build bearing form ── */
+function buildBearingGroups() {
+  const container = document.getElementById("bearing-groups");
+  SIZE_LABELS.forEach((size, gi) => {
+    const gc = document.createElement("div");
+    gc.className = "group-card";
+    gc.innerHTML = `<h3>${size} Bearings</h3><div class="row row-3" id="group-${gi}-bearings"></div>
+      <div class="group-summary" id="group-${gi}-summary" aria-live="polite">Mean density: — &nbsp;|&nbsp; Mean viscosity: —</div>`;
+    container.appendChild(gc);
+    const grid = gc.querySelector(`#group-${gi}-bearings`);
+    for (let bi = 0; bi < BEARINGS_PER_GROUP; bi++) {
+      const bc = document.createElement("div");
+      bc.className = "bearing-card";
+      const pfx = `g${gi}b${bi}`;
+      bc.innerHTML = `
+        <h4>Bearing #${bi+1}</h4>
+        <div class="field"><label for="${pfx}-mass">Mass <span class="hint">(kg)</span></label>
+          <input type="number" id="${pfx}-mass" step="any" min="0" data-group="${gi}" data-bearing="${bi}" data-field="mass" aria-describedby="${pfx}-mass-err">
+          <div class="error-msg" id="${pfx}-mass-err">Positive number required.</div></div>
+        <div class="field"><label for="${pfx}-dia">Diameter <span class="hint">(m)</span></label>
+          <input type="number" id="${pfx}-dia" step="any" min="0" data-group="${gi}" data-bearing="${bi}" data-field="diameter" aria-describedby="${pfx}-dia-err">
+          <div class="error-msg" id="${pfx}-dia-err">Positive number required.</div></div>
+        <div class="field"><label for="${pfx}-time">Fall time <span class="hint">(s)</span></label>
+          <input type="number" id="${pfx}-time" step="any" min="0" data-group="${gi}" data-bearing="${bi}" data-field="time" aria-describedby="${pfx}-time-err">
+          <div class="error-msg" id="${pfx}-time-err">Positive number required.</div></div>
+        <div class="computed" id="${pfx}-computed">Volume: — &nbsp;&nbsp; Density: —</div>`;
+      grid.appendChild(bc);
+    }
+  });
+}
+
+/* ── Live updates ── */
+function liveUpdateFluidDensity() {
+  const m = parseFloat(document.getElementById("fluid-mass").value);
+  const v = parseFloat(document.getElementById("fluid-vol").value);
+  const el = document.getElementById("fluid-density-live");
+  if (m > 0 && v > 0) el.textContent = (m / v).toFixed(4);
+  else el.textContent = "—";
+}
+
+function liveUpdateBearing(e) {
+  const inp = e.target;
+  const gi = inp.dataset.group, bi = inp.dataset.bearing;
+  if (gi === undefined) return;
+  const massEl = document.getElementById(`g${gi}b${bi}-mass`);
+  const diaEl = document.getElementById(`g${gi}b${bi}-dia`);
+  const comp = document.getElementById(`g${gi}b${bi}-computed`);
+  const m = parseFloat(massEl.value), d = parseFloat(diaEl.value);
+  if (m > 0 && d > 0) {
+    const vol = bearingVolume(d);
+    const rho = m / vol;
+    comp.innerHTML = `Volume: <span>${vol.toExponential(6)}</span> m&sup3; &nbsp;&nbsp; Density: <span>${rho.toFixed(2)}</span> kg/m&sup3;`;
+  } else {
+    comp.innerHTML = "Volume: — &nbsp;&nbsp; Density: —";
+  }
+}
+
+/* ── Validation ── */
+function vPos(id) {
+  const el = document.getElementById(id);
+  const v = parseFloat(el.value);
+  const ok = v > 0;
+  el.setAttribute("aria-invalid", ok ? "false" : "true");
+  return ok ? v : null;
+}
+
+/* ── Main calculation ── */
+function runCalc() {
+  let valid = true;
+  const fm = vPos("fluid-mass"); if (!fm) valid = false;
+  const fv = vPos("fluid-vol"); if (!fv) valid = false;
+  const fd = vPos("fall-dist"); if (!fd) valid = false;
+
+  const groups = [];
+  for (let gi = 0; gi < 3; gi++) {
+    const bearings = [];
+    for (let bi = 0; bi < 3; bi++) {
+      const m = vPos(`g${gi}b${bi}-mass`);
+      const d = vPos(`g${gi}b${bi}-dia`);
+      const t = vPos(`g${gi}b${bi}-time`);
+      if (!m || !d || !t) { valid = false; bearings.push(null); continue; }
+      const vol = bearingVolume(d);
+      const rho = m / vol;
+      bearings.push({ mass: m, diameter: d, time: t, volume: vol, density: rho });
+    }
+    groups.push(bearings);
+  }
+
+  if (!valid) { document.getElementById("results").classList.remove("visible"); return; }
+
+  const rhoFluid = fm / fv;
+  const allVisc = [];
+  const groupResults = [];
+
+  for (let gi = 0; gi < 3; gi++) {
+    const bs = groups[gi];
+    const meanDensity = bs.reduce((s, b) => s + b.density, 0) / 3;
+    const viscArr = [];
+    for (const b of bs) {
+      const r = b.diameter / 2;
+      const eta = stokesViscosity(r, meanDensity, rhoFluid, fd, b.time);
+      b.viscosity = eta;
+      const vTerminal = fd / b.time;
+      const dragForce = 6 * Math.PI * eta * r * vTerminal;
+      const power = dragForce * vTerminal;
+      const energy = dragForce * fd;
+      b.vTerminal = vTerminal;
+      b.dragForce = dragForce;
+      b.power = power;
+      b.energy = energy;
+      viscArr.push(eta);
+      allVisc.push(eta);
+    }
+    const meanVisc = viscArr.reduce((a, b) => a + b, 0) / 3;
+    groupResults.push({ size: SIZE_LABELS[gi], meanDensity, meanVisc, bearings: bs });
+  }
+
+  const overall = allVisc.reduce((a, b) => a + b, 0) / allVisc.length;
+  const std = Math.sqrt(allVisc.reduce((s, v) => s + Math.pow(v - overall, 2), 0) / allVisc.length);
+  const relStd = overall !== 0 ? (std / overall * 100) : 0;
+
+  lastCalcData = { rhoFluid, fallDist: fd, groups: groupResults, overall, std, relStd };
+
+  renderResults(rhoFluid, fd, groupResults, overall, std, relStd, allVisc);
+  const res = document.getElementById("results");
+  res.classList.add("visible");
+  res.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("results-summary").focus();
+}
+
+/* ── Render ── */
+function renderResults(rhoFluid, fallDist, groups, overall, std, relStd) {
+  // Summary
+  let html = `<h2 tabindex="-1">Results Summary</h2>`;
+  html += `<div class="stat"><span class="stat-label">Fluid density</span><span class="stat-value">${rhoFluid.toFixed(4)} kg/m&sup3;</span></div>`;
+  html += `<div class="stat"><span class="stat-label">Fall distance</span><span class="stat-value">${fallDist} m</span></div>`;
+  html += `<table><thead><tr><th>Group</th><th>Mean Density (kg/m&sup3;)</th><th>Mean Viscosity (Pa&middot;s)</th></tr></thead><tbody>`;
+  for (const g of groups) {
+    html += `<tr><td>${g.size}</td><td>${g.meanDensity.toFixed(2)}</td><td>${g.meanVisc.toFixed(6)}</td></tr>`;
+  }
+  html += `</tbody></table>`;
+
+  // Per-bearing detail
+  html += `<details style="margin-top:.75rem"><summary style="cursor:pointer;font-weight:600;font-size:.9rem;color:var(--primary)">Show per-bearing detail</summary>`;
+  for (const g of groups) {
+    html += `<h3 style="margin-top:.75rem">${g.size} Bearings</h3><table><thead><tr><th>#</th><th>Volume (m&sup3;)</th><th>Density (kg/m&sup3;)</th><th>Viscosity (Pa&middot;s)</th></tr></thead><tbody>`;
+    g.bearings.forEach((b, i) => {
+      html += `<tr><td>${i+1}</td><td>${b.volume.toExponential(6)}</td><td>${b.density.toFixed(2)}</td><td>${b.viscosity.toFixed(6)}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  html += `</details>`;
+
+  html += `<div style="margin-top:1rem">`;
+  html += `<div class="stat"><span class="stat-label">Overall average viscosity</span><span class="stat-value">${overall.toFixed(6)} Pa&middot;s</span></div>`;
+  html += `<div class="stat"><span class="stat-label">Standard deviation</span><span class="stat-value">${std.toFixed(6)} Pa&middot;s</span></div>`;
+  html += `<div class="stat"><span class="stat-label">Relative std dev</span><span class="stat-value">${relStd.toFixed(2)}%</span></div>`;
+  html += `</div>`;
+  document.getElementById("results-summary").innerHTML = html;
+
+  // Group comparison
+  const viscByGroup = groups.map(g => g.meanVisc);
+  const minV = Math.min(...viscByGroup), maxV = Math.max(...viscByGroup);
+  const spread = maxV - minV;
+  const spreadPct = overall !== 0 ? (spread / overall * 100) : 0;
+  const sorted = [...groups].sort((a, b) => a.meanVisc - b.meanVisc);
+
+  let chtml = `<h2>Group Comparison</h2>`;
+  chtml += `<div class="stat"><span class="stat-label">Spread across groups</span><span class="stat-value">${spread.toFixed(6)} Pa&middot;s (${spreadPct.toFixed(2)}%)</span></div>`;
+
+  if (spreadPct < 5) {
+    chtml += `<div class="analysis"><strong>Consistent results.</strong> All three bearing sizes produced similar viscosity values. This suggests the fluid behaves as a Newtonian fluid and Stokes' Law is a good model at these conditions.</div>`;
+  } else if (spreadPct < 15) {
+    chtml += `<div class="analysis warn"><strong>Moderate variation detected.</strong> Possible causes:<br>
+      &bull; Bearings not reaching terminal velocity before measurement<br>
+      &bull; Wall effects (tube diameter too close to bearing size)<br>
+      &bull; Slight non-Newtonian behaviour at different shear rates</div>`;
+  } else {
+    chtml += `<div class="analysis error-box"><strong>Significant variation detected.</strong> The fluid may be non-Newtonian (viscosity depends on shear rate), or experimental error is present. Larger bearings fall faster and impose higher shear rates on the fluid.</div>`;
+  }
+
+  chtml += `<div class="stat"><span class="stat-label">Lowest viscosity</span><span class="stat-value">${sorted[0].size} (${sorted[0].meanVisc.toFixed(6)} Pa&middot;s)</span></div>`;
+  chtml += `<div class="stat"><span class="stat-label">Highest viscosity</span><span class="stat-value">${sorted[2].size} (${sorted[2].meanVisc.toFixed(6)} Pa&middot;s)</span></div>`;
+
+  if (sorted[2].meanVisc > sorted[0].meanVisc * 1.1) {
+    if (sorted[2].size === "Small") {
+      chtml += `<div class="analysis warn">Smaller bearings gave higher viscosity &mdash; they fall slower relative to their size, experiencing lower shear rates. This pattern is typical of <strong>shear-thinning fluids</strong> (e.g. ketchup, paint, blood, polymer solutions).</div>`;
+    } else if (sorted[2].size === "Large") {
+      chtml += `<div class="analysis warn">Larger bearings gave higher viscosity &mdash; possible <strong>wall effects</strong> or the bearings may not have reached terminal velocity. Check tube-to-bearing diameter ratio (should be at least 10:1).</div>`;
+    }
+  }
+  document.getElementById("results-comparison").innerHTML = chtml;
+
+  // Real-world fluids table
+  let fhtml = `<h2>Real-World Viscosity Comparison</h2>`;
+  fhtml += `<table><thead><tr><th>Fluid</th><th>Viscosity (Pa&middot;s)</th><th>vs. Your Result</th></tr></thead><tbody>`;
+  let closestName = "", closestDiff = Infinity;
+  for (const [name, eta] of KNOWN_FLUIDS) {
+    const ratio = overall !== 0 ? (eta / overall).toFixed(2) + "x" : "N/A";
+    fhtml += `<tr><td>${name}</td><td>${eta < 0.01 ? eta.toExponential(2) : eta.toFixed(4)}</td><td>${ratio}</td></tr>`;
+    const diff = Math.abs(Math.log10(eta + 1e-30) - Math.log10(overall + 1e-30));
+    if (diff < closestDiff) { closestDiff = diff; closestName = name; }
+  }
+  fhtml += `</tbody></table>`;
+  fhtml += `<div class="highlight">Your fluid (&eta; = ${overall.toFixed(6)} Pa&middot;s) is closest to: <strong>${closestName}</strong></div>`;
+  document.getElementById("results-fluids").innerHTML = fhtml;
+
+  // Applications
+  let ahtml = `<h2>Real-World Applications</h2>`;
+  let apps;
+  if (overall < 0.001) {
+    ahtml += `<p style="margin-bottom:.5rem">Your fluid has <strong>very low viscosity</strong> (thinner than water).</p>`;
+    apps = ["Hydraulic systems requiring fast response","Inkjet printing","Fuel injection systems","Cooling systems (heat transfer fluids)","Cleaning solvents and degreasers"];
+  } else if (overall < 0.1) {
+    ahtml += `<p style="margin-bottom:.5rem">Your fluid has <strong>low-to-moderate viscosity</strong> (water to light oil).</p>`;
+    apps = ["Lubrication of light machinery and bearings","Food processing (beverages, sauces)","Pharmaceutical coatings and suspensions","Cosmetics (lotions, light creams)","Agricultural sprays and pesticides"];
+  } else if (overall < 1.0) {
+    ahtml += `<p style="margin-bottom:.5rem">Your fluid has <strong>moderate viscosity</strong> (oil to glycerol range).</p>`;
+    apps = ["Engine and gear lubrication","Damping fluids in shock absorbers","Coating and painting processes","Food production (syrups, dressings)","Drilling muds in oil/gas extraction"];
+  } else if (overall < 50) {
+    ahtml += `<p style="margin-bottom:.5rem">Your fluid has <strong>high viscosity</strong> (syrup / honey range).</p>`;
+    apps = ["Adhesives and sealants","Thick food products (honey, caramel, chocolate)","Polymer processing and extrusion","Medical gels and ointments","Grease for heavy-duty bearings"];
+  } else {
+    ahtml += `<p style="margin-bottom:.5rem">Your fluid has <strong>very high viscosity</strong> (paste / tar range).</p>`;
+    apps = ["Road construction (asphalt / bitumen)","Heavy industrial adhesives","Glass manufacturing (molten glass)","Geological modelling (mantle convection)","Sealants for extreme environments"];
+  }
+  ahtml += `<ul class="app-list">${apps.map(a => `<li>${a}</li>`).join("")}</ul>`;
+  document.getElementById("results-applications").innerHTML = ahtml;
+
+  // Energy analysis
+  let ehtml = `<h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Energy Consumption Analysis</h2>`;
+  ehtml += `<p style="color:var(--muted);font-size:.875rem;margin-bottom:1rem">At terminal velocity, all gravitational potential energy is dissipated as heat by viscous drag. Higher viscosity means more drag force and greater energy loss per unit distance.</p>`;
+
+  // Per-bearing energy table
+  ehtml += `<table><thead><tr><th>Group</th><th>#</th><th>Terminal Vel. (m/s)</th><th>Drag Force (N)</th><th>Power Dissipated (W)</th><th>Energy Lost (J)</th></tr></thead><tbody>`;
+  let totalEnergy = 0, totalPower = 0;
+  let bearingCount = 0;
+  for (const g of groups) {
+    for (let i = 0; i < g.bearings.length; i++) {
+      const b = g.bearings[i];
+      totalEnergy += b.energy;
+      totalPower += b.power;
+      bearingCount++;
+      ehtml += `<tr><td>${g.size}</td><td>${i+1}</td><td>${b.vTerminal.toExponential(4)}</td><td>${b.dragForce.toExponential(4)}</td><td>${b.power.toExponential(4)}</td><td>${b.energy.toExponential(4)}</td></tr>`;
+    }
+  }
+  ehtml += `</tbody></table>`;
+
+  const avgEnergy = totalEnergy / bearingCount;
+  const avgPower = totalPower / bearingCount;
+
+  ehtml += `<div style="margin-top:1rem">`;
+  ehtml += `<div class="stat"><span class="stat-label">Average drag force energy loss per fall</span><span class="stat-value">${avgEnergy.toExponential(4)} J</span></div>`;
+  ehtml += `<div class="stat"><span class="stat-label">Average power dissipated at terminal velocity</span><span class="stat-value">${avgPower.toExponential(4)} W</span></div>`;
+  ehtml += `</div>`;
+
+  // Gravitational PE comparison
+  ehtml += `<h3 style="margin-top:1.25rem">Gravitational vs. Viscous Energy Budget</h3>`;
+  ehtml += `<p style="color:var(--muted);font-size:.875rem;margin-bottom:.75rem">Comparing gravitational potential energy released to viscous energy dissipated for each bearing.</p>`;
+  ehtml += `<table><thead><tr><th>Group</th><th>#</th><th>Grav. PE Released (J)</th><th>Viscous Energy (J)</th><th>Ratio (Viscous/PE)</th></tr></thead><tbody>`;
+  for (const g of groups) {
+    for (let i = 0; i < g.bearings.length; i++) {
+      const b = g.bearings[i];
+      const pe = b.mass * G * fallDist;
+      const ratio = pe > 0 ? (b.energy / pe * 100).toFixed(1) : "N/A";
+      ehtml += `<tr><td>${g.size}</td><td>${i+1}</td><td>${pe.toExponential(4)}</td><td>${b.energy.toExponential(4)}</td><td>${ratio}%</td></tr>`;
+    }
+  }
+  ehtml += `</tbody></table>`;
+
+  // Practical scaling insight
+  ehtml += `<div class="analysis" style="margin-top:1rem"><strong>Why this matters in practice:</strong><br>`;
+  ehtml += `Viscous drag force scales linearly with viscosity (&eta;). If you double the viscosity, you double the energy needed to move an object through the fluid at the same speed. `;
+  ehtml += `This directly impacts:<br>`;
+  ehtml += `&bull; <strong>Pumping costs</strong> &mdash; higher viscosity fluids need more powerful pumps<br>`;
+  ehtml += `&bull; <strong>Mixing &amp; stirring</strong> &mdash; motor energy scales with viscosity<br>`;
+  ehtml += `&bull; <strong>Bearing &amp; lubrication losses</strong> &mdash; thicker lubricants create more friction heat<br>`;
+  ehtml += `&bull; <strong>Pipe flow</strong> &mdash; pressure drop (and thus energy) is proportional to viscosity for laminar flow</div>`;
+
+  // Energy scaling comparison across groups
+  const groupEnergies = groups.map(g => {
+    const avg = g.bearings.reduce((s, b) => s + b.energy, 0) / g.bearings.length;
+    return { size: g.size, avgEnergy: avg };
+  });
+  const minE = Math.min(...groupEnergies.map(g => g.avgEnergy));
+  ehtml += `<h3 style="margin-top:1.25rem">Energy by Bearing Size</h3>`;
+  ehtml += `<table><thead><tr><th>Group</th><th>Avg Energy Loss (J)</th><th>Relative to Smallest</th></tr></thead><tbody>`;
+  for (const ge of groupEnergies) {
+    const rel = minE > 0 ? (ge.avgEnergy / minE).toFixed(2) + "x" : "—";
+    ehtml += `<tr><td>${ge.size}</td><td>${ge.avgEnergy.toExponential(4)}</td><td>${rel}</td></tr>`;
+  }
+  ehtml += `</tbody></table>`;
+
+  document.getElementById("results-energy").innerHTML = ehtml;
+
+  renderCharts(groups, overall);
+}
+
+/* ── Charts ── */
+const CHART_COLORS = ["#2563eb","#16a34a","#d97706"];
+const CHART_COLORS_LIGHT = ["rgba(37,99,235,.15)","rgba(22,163,74,.15)","rgba(217,119,6,.15)"];
+
+function renderCharts(groups, overall) {
+  let html = `<h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Charts</h2>`;
+  html += `<div class="chart-grid">`;
+  html += `<div class="chart-container"><div class="chart-title">Viscosity by Bearing</div><div class="chart-subtitle">Colour-coded by size group &mdash; dashed red line shows overall average</div><canvas id="chart-visc" width="900" height="400"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Energy Dissipated per Bearing</div><div class="chart-subtitle">Viscous drag energy lost over the fall distance (Joules)</div><canvas id="chart-energy" width="900" height="400"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Power Dissipated per Bearing</div><div class="chart-subtitle">Rate of energy loss at terminal velocity (Watts)</div><canvas id="chart-power" width="900" height="400"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Drag Force per Bearing</div><div class="chart-subtitle">Stokes drag force at terminal velocity (Newtons)</div><canvas id="chart-drag" width="900" height="400"></canvas></div>`;
+  html += `</div>`;
+  document.getElementById("results-charts").innerHTML = html;
+
+  requestAnimationFrame(() => {
+    drawBarChart("chart-visc", groups, "viscosity", "Viscosity (Pa·s)", overall);
+    drawBarChart("chart-energy", groups, "energy", "Energy (J)", null);
+    drawBarChart("chart-power", groups, "power", "Power (W)", null);
+    drawBarChart("chart-drag", groups, "dragForce", "Drag Force (N)", null);
+  });
+}
+
+function getCanvasCtx(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function niceNum(range, round) {
+  const exp = Math.floor(Math.log10(range));
+  const frac = range / Math.pow(10, exp);
+  let nice;
+  if (round) {
+    if (frac < 1.5) nice = 1; else if (frac < 3) nice = 2; else if (frac < 7) nice = 5; else nice = 10;
+  } else {
+    if (frac <= 1) nice = 1; else if (frac <= 2) nice = 2; else if (frac <= 5) nice = 5; else nice = 10;
+  }
+  return nice * Math.pow(10, exp);
+}
+
+function niceScale(minVal, maxVal, maxTicks) {
+  if (maxVal === minVal) maxVal = minVal + 1;
+  const range = niceNum(maxVal - minVal, false);
+  const tickSpacing = niceNum(range / (maxTicks - 1), true);
+  const niceMin = Math.floor(minVal / tickSpacing) * tickSpacing;
+  const niceMax = Math.ceil(maxVal / tickSpacing) * tickSpacing;
+  const ticks = [];
+  for (let v = niceMin; v <= niceMax + tickSpacing * 0.5; v += tickSpacing) ticks.push(parseFloat(v.toPrecision(10)));
+  return { min: niceMin, max: niceMax, ticks };
+}
+
+function fmtVal(val) {
+  const a = Math.abs(val);
+  if (a === 0) return "0";
+  if (a >= 1000) return val.toFixed(0);
+  if (a >= 1) return val.toFixed(2);
+  if (a >= 0.01) return val.toFixed(4);
+  return val.toExponential(2);
+}
+
+function drawBarChart(id, groups, field, yLabel, avgLine) {
+  const { ctx, w, h } = getCanvasCtx(id);
+  const pad = { top: 40, right: 30, bottom: 70, left: 85 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  // Collect bars
+  const bars = [];
+  groups.forEach((g, gi) => {
+    g.bearings.forEach((b, bi) => {
+      bars.push({ label: `${g.size} #${bi+1}`, value: b[field], color: CHART_COLORS[gi], light: CHART_COLORS_LIGHT[gi], group: g.size });
+    });
+  });
+
+  const allVals = bars.map(b => b.value);
+  if (avgLine !== null && avgLine !== undefined) allVals.push(avgLine);
+  const scale = niceScale(0, Math.max(...allVals), 6);
+
+  const totalBars = bars.length;
+  const gap = plotW / totalBars;
+  const barW = gap * 0.6;
+
+  // Background
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines + Y labels
+  ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "right";
+  scale.ticks.forEach(tick => {
+    const y = pad.top + plotH - ((tick - scale.min) / (scale.max - scale.min)) * plotH;
+    ctx.strokeStyle = "#f1f5f9";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText(fmtVal(tick), pad.left - 12, y + 5);
+  });
+
+  // Axes
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + plotH); ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH); ctx.stroke();
+
+  // Bars
+  bars.forEach((bar, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const barH = ((bar.value - scale.min) / (scale.max - scale.min)) * plotH;
+    const y = pad.top + plotH - barH;
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + plotH);
+    grad.addColorStop(0, bar.color);
+    grad.addColorStop(1, bar.light);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [5, 5, 0, 0]);
+    ctx.fill();
+
+    // Border on top half
+    ctx.strokeStyle = bar.color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [5, 5, 0, 0]);
+    ctx.stroke();
+
+    // Value label above bar
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(fmtVal(bar.value), x + barW / 2, y - 8);
+
+    // X label (rotated)
+    ctx.fillStyle = "#64748b";
+    ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.save();
+    ctx.translate(x + barW / 2, pad.top + plotH + 12);
+    ctx.rotate(-Math.PI / 5);
+    ctx.textAlign = "right";
+    ctx.fillText(bar.label, 0, 0);
+    ctx.restore();
+  });
+
+  // Average line
+  if (avgLine !== null && avgLine !== undefined) {
+    const ay = pad.top + plotH - ((avgLine - scale.min) / (scale.max - scale.min)) * plotH;
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath(); ctx.moveTo(pad.left, ay); ctx.lineTo(pad.left + plotW, ay); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#ef4444";
+    ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`Average: ${fmtVal(avgLine)}`, pad.left + plotW - 150, ay - 8);
+  }
+
+  // Y axis title
+  ctx.save();
+  ctx.translate(18, pad.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(yLabel, 0, 0);
+  ctx.restore();
+
+  // Legend
+  let lx = pad.left + 4;
+  const ly = pad.top - 16;
+  ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+  groups.forEach((g, gi) => {
+    ctx.fillStyle = CHART_COLORS[gi];
+    ctx.beginPath();
+    ctx.roundRect(lx, ly - 10, 14, 14, 3);
+    ctx.fill();
+    ctx.fillStyle = "#334155";
+    ctx.textAlign = "left";
+    ctx.fillText(g.size, lx + 20, ly + 2);
+    lx += ctx.measureText(g.size).width + 42;
+  });
+}
+
+/* ── Cost Optimisation ── */
+function runCostAnalysis() {
+  if (!lastCalcData) return;
+  const eta = lastCalcData.overall;
+  const rhoF = lastCalcData.rhoFluid;
+
+  const pipeDia = parseFloat(document.getElementById("pipe-dia").value);
+  const pipeLen = parseFloat(document.getElementById("pipe-len").value);
+  const flowRate = parseFloat(document.getElementById("flow-rate").value);
+  const opHours = parseFloat(document.getElementById("op-hours").value);
+  const elecCost = parseFloat(document.getElementById("elec-cost").value);
+  const pumpEff = parseFloat(document.getElementById("pump-eff").value) / 100;
+  const reduce1 = parseFloat(document.getElementById("visc-reduce-1").value) / 100;
+  const reduce2 = parseFloat(document.getElementById("visc-reduce-2").value) / 100;
+
+  if ([pipeDia, pipeLen, flowRate, opHours, elecCost, pumpEff].some(v => !(v > 0))) {
+    document.getElementById("results-cost").innerHTML = `<div class="analysis error-box"><strong>Invalid input.</strong> All system parameters must be positive numbers.</div>`;
+    document.getElementById("results-cost").style.display = "block";
+    return;
+  }
+
+  // Hagen-Poiseuille: ΔP = 128ηLQ / (πD⁴)
+  const r = pipeDia / 2;
+  const calcScenario = (viscosity, label) => {
+    const deltaP = (128 * viscosity * pipeLen * flowRate) / (Math.PI * Math.pow(pipeDia, 4));
+    const pumpPowerHydraulic = deltaP * flowRate; // W
+    const pumpPowerActual = pumpPowerHydraulic / pumpEff; // W
+    const pumpPowerKW = pumpPowerActual / 1000;
+    const annualEnergy = pumpPowerKW * opHours; // kWh
+    const annualCost = annualEnergy * elecCost;
+    // Flow velocity and Reynolds number
+    const area = Math.PI * r * r;
+    const velocity = flowRate / area;
+    const re = (rhoF * velocity * pipeDia) / viscosity;
+    return { label, viscosity, deltaP, pumpPowerKW, annualEnergy, annualCost, velocity, re };
+  };
+
+  const current = calcScenario(eta, "Current fluid");
+  const s1 = calcScenario(eta * (1 - reduce1), `${(reduce1*100).toFixed(0)}% reduction`);
+  const s2 = calcScenario(eta * (1 - reduce2), `${(reduce2*100).toFixed(0)}% reduction`);
+
+  const scenarios = [current, s1, s2];
+  const saving1 = current.annualCost - s1.annualCost;
+  const saving2 = current.annualCost - s2.annualCost;
+  const currency = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let html = `<h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Cost Analysis Results</h2>`;
+
+  // System summary
+  html += `<h3>System Parameters</h3>`;
+  html += `<div class="row row-3" style="margin-bottom:1rem">`;
+  html += `<div class="computed">Pipe: <span>${pipeDia} m</span> dia &times; <span>${pipeLen} m</span></div>`;
+  html += `<div class="computed">Flow: <span>${flowRate} m&sup3;/s</span> (<span>${(flowRate*1000).toFixed(2)} L/s</span>)</div>`;
+  html += `<div class="computed">Flow velocity: <span>${current.velocity.toFixed(3)} m/s</span></div>`;
+  html += `</div>`;
+
+  // Reynolds number check
+  if (current.re > 2300) {
+    html += `<div class="analysis warn"><strong>Note: Re = ${current.re.toFixed(0)} (turbulent flow).</strong> The Hagen-Poiseuille equation assumes laminar flow (Re &lt; 2300). These cost estimates are approximate &mdash; actual pressure drop in turbulent flow is higher and depends on pipe roughness. Consider increasing pipe diameter or reducing flow rate.</div>`;
+  } else {
+    html += `<div class="analysis"><strong>Re = ${current.re.toFixed(0)} (laminar flow).</strong> Hagen-Poiseuille equation is valid for these conditions.</div>`;
+  }
+
+  // Scenario comparison table
+  html += `<h3 style="margin-top:1.25rem">Scenario Comparison</h3>`;
+  html += `<table><thead><tr><th>Scenario</th><th>Viscosity (Pa&middot;s)</th><th>Pressure Drop (Pa)</th><th>Pump Power (kW)</th><th>Annual Energy (kWh)</th><th>Annual Cost</th></tr></thead><tbody>`;
+  scenarios.forEach((s, i) => {
+    const highlight = i === 0 ? ' style="background:#f8fafc;font-weight:600"' : '';
+    html += `<tr${highlight}><td>${s.label}</td><td>${fmtVal(s.viscosity)}</td><td>${fmtVal(s.deltaP)}</td><td>${s.pumpPowerKW.toFixed(4)}</td><td>${s.annualEnergy.toFixed(2)}</td><td>${currency(s.annualCost)}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+
+  // Savings highlight
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">`;
+  html += `<div class="highlight" style="background:#dcfce7;color:#166534">${s1.label}<br><strong>Save ${currency(saving1)}/year</strong><br><span style="font-size:.85rem;font-weight:400">(${(saving1/current.annualCost*100).toFixed(1)}% reduction)</span></div>`;
+  html += `<div class="highlight" style="background:#dbeafe;color:#1e40af">${s2.label}<br><strong>Save ${currency(saving2)}/year</strong><br><span style="font-size:.85rem;font-weight:400">(${(saving2/current.annualCost*100).toFixed(1)}% reduction)</span></div>`;
+  html += `</div>`;
+
+  // Recommendations
+  html += `<h3 style="margin-top:1.5rem">Where You Can Save</h3>`;
+  html += `<div class="analysis">`;
+  html += `<strong>Key insight:</strong> Pumping cost is directly proportional to viscosity in laminar flow. Every 1% reduction in viscosity = 1% reduction in pumping energy.<br><br>`;
+  html += `<strong>Practical ways to reduce viscosity:</strong><br>`;
+  html += `&bull; <strong>Heating</strong> &mdash; Most fluids get thinner when heated. Even 10&ndash;20 &deg;C can halve viscosity for oils and syrups. Compare heating cost vs pumping savings.<br>`;
+  html += `&bull; <strong>Dilution / thinning agents</strong> &mdash; Adding solvents or water (if compatible) reduces viscosity. Check product spec tolerances.<br>`;
+  html += `&bull; <strong>Fluid substitution</strong> &mdash; Switch to a lower-viscosity fluid that meets the same functional requirements.<br>`;
+  html += `&bull; <strong>Larger pipe diameter</strong> &mdash; Pressure drop scales as D&sup4;, so a small increase in pipe size has a huge effect. Doubling diameter cuts pumping power by 16&times;.<br>`;
+  html += `&bull; <strong>Shorter pipe runs</strong> &mdash; Redesign layout to minimise pipe length, bends, and fittings.<br>`;
+  html += `&bull; <strong>Lower flow rate</strong> &mdash; If process allows batch or intermittent operation, reducing Q saves linearly.`;
+  html += `</div>`;
+
+  // Pipe diameter optimisation table
+  html += `<h3 style="margin-top:1.25rem">Pipe Diameter Impact</h3>`;
+  html += `<p style="color:var(--muted);font-size:.85rem;margin-bottom:.5rem">Cost impact of changing pipe diameter (keeping viscosity, flow rate, and length constant).</p>`;
+  html += `<table><thead><tr><th>Pipe Diameter (m)</th><th>Pressure Drop (Pa)</th><th>Pump Power (kW)</th><th>Annual Cost</th><th>vs. Current</th></tr></thead><tbody>`;
+  const diaMultipliers = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  diaMultipliers.forEach(mult => {
+    const d = pipeDia * mult;
+    const dp = (128 * eta * pipeLen * flowRate) / (Math.PI * Math.pow(d, 4));
+    const pw = (dp * flowRate / pumpEff) / 1000;
+    const ac = pw * opHours * elecCost;
+    const diff = ac - current.annualCost;
+    const diffStr = diff > 0 ? `+${currency(diff)}` : `-${currency(Math.abs(diff))}`;
+    const isCurrent = mult === 1.0;
+    const style = isCurrent ? ' style="background:#f8fafc;font-weight:600"' : '';
+    html += `<tr${style}><td>${d.toFixed(4)}${isCurrent ? " (current)" : ""}</td><td>${fmtVal(dp)}</td><td>${pw.toFixed(4)}</td><td>${currency(ac)}</td><td>${isCurrent ? "—" : diffStr}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+
+  // Cost breakdown chart
+  html += `<div class="chart-container" style="margin-top:1.25rem"><div class="chart-title">Annual Cost Comparison</div><div class="chart-subtitle">Current vs optimised scenarios</div><canvas id="chart-cost" width="900" height="350"></canvas></div>`;
+
+  document.getElementById("results-cost").innerHTML = html;
+  document.getElementById("results-cost").style.display = "block";
+  document.getElementById("results-cost").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Draw cost comparison bar chart
+  requestAnimationFrame(() => drawCostBar("chart-cost", scenarios, saving1, saving2));
+}
+
+function drawCostBar(id, scenarios, sav1, sav2) {
+  const { ctx, w, h } = getCanvasCtx(id);
+  const pad = { top: 40, right: 30, bottom: 60, left: 85 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  const colors = ["#64748b","#16a34a","#2563eb"];
+  const lightColors = ["rgba(100,116,139,.15)","rgba(22,163,74,.15)","rgba(37,99,235,.15)"];
+
+  const vals = scenarios.map(s => s.annualCost);
+  const scale = niceScale(0, Math.max(...vals), 6);
+  const gap = plotW / scenarios.length;
+  const barW = gap * 0.5;
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
+  scale.ticks.forEach(tick => {
+    const y = pad.top + plotH - ((tick - scale.min) / (scale.max - scale.min)) * plotH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.textAlign = "right";
+    ctx.fillText(tick.toFixed(2), pad.left - 12, y + 5);
+  });
+
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + plotH); ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH); ctx.stroke();
+
+  scenarios.forEach((s, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const barH = ((s.annualCost - scale.min) / (scale.max - scale.min)) * plotH;
+    const y = pad.top + plotH - barH;
+
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + plotH);
+    grad.addColorStop(0, colors[i]);
+    grad.addColorStop(1, lightColors[i]);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, barH, [5, 5, 0, 0]); ctx.fill();
+    ctx.strokeStyle = colors[i]; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, barH, [5, 5, 0, 0]); ctx.stroke();
+
+    // Value
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(s.annualCost.toFixed(2), x + barW / 2, y - 10);
+
+    // Saving annotation
+    if (i > 0) {
+      const saving = scenarios[0].annualCost - s.annualCost;
+      ctx.fillStyle = "#16a34a";
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(`-${(saving / scenarios[0].annualCost * 100).toFixed(0)}%`, x + barW / 2, y - 26);
+    }
+
+    // Label
+    ctx.fillStyle = "#334155";
+    ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(s.label, x + barW / 2, pad.top + plotH + 20);
+  });
+
+  // Y title
+  ctx.save();
+  ctx.translate(18, pad.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Annual Cost", 0, 0);
+  ctx.restore();
+}
+
+/* ── Sample data ── */
+function loadSample() {
+  document.getElementById("fluid-mass").value = SAMPLE_DATA.fluidMass;
+  document.getElementById("fluid-vol").value = SAMPLE_DATA.fluidVol;
+  document.getElementById("fall-dist").value = SAMPLE_DATA.fallDist;
+  liveUpdateFluidDensity();
+  SAMPLE_DATA.groups.forEach((bs, gi) => {
+    bs.forEach((b, bi) => {
+      document.getElementById(`g${gi}b${bi}-mass`).value = b.mass;
+      document.getElementById(`g${gi}b${bi}-dia`).value = b.diameter;
+      document.getElementById(`g${gi}b${bi}-time`).value = b.time;
+      // trigger live compute
+      const evt = new Event("input", { bubbles: true });
+      document.getElementById(`g${gi}b${bi}-mass`).dispatchEvent(evt);
+    });
+  });
+}
+
+function clearAll() {
+  document.querySelectorAll("input[type=number]").forEach(el => {
+    el.value = "";
+    el.setAttribute("aria-invalid", "false");
+  });
+  document.getElementById("fluid-density-live").textContent = "—";
+  for (let gi = 0; gi < 3; gi++)
+    for (let bi = 0; bi < 3; bi++)
+      document.getElementById(`g${gi}b${bi}-computed`).innerHTML = "Volume: — &nbsp;&nbsp; Density: —";
+  for (let gi = 0; gi < 3; gi++)
+    document.getElementById(`group-${gi}-summary`).innerHTML = "Mean density: — &nbsp;|&nbsp; Mean viscosity: —";
+  document.getElementById("results").classList.remove("visible");
+}
+
+/* ── CSV Export ── */
+function downloadCSV() {
+  if (!lastCalcData) return;
+  const d = lastCalcData;
+  const rows = [];
+
+  // Header section
+  rows.push(["Fluid Viscosity Calculator - Stokes' Law Results"]);
+  rows.push([]);
+
+  // Fluid properties
+  rows.push(["Fluid Properties"]);
+  rows.push(["Fluid Mass (kg)", document.getElementById("fluid-mass").value]);
+  rows.push(["Fluid Volume (m^3)", document.getElementById("fluid-vol").value]);
+  rows.push(["Fluid Density (kg/m^3)", d.rhoFluid.toFixed(4)]);
+  rows.push(["Fall Distance (m)", d.fallDist]);
+  rows.push([]);
+
+  // Per-bearing input & output table
+  rows.push(["Bearing Data & Results"]);
+  rows.push(["Group", "Bearing #", "Mass (kg)", "Diameter (m)", "Fall Time (s)",
+             "Volume (m^3)", "Density (kg/m^3)", "Viscosity (Pa.s)"]);
+  for (const g of d.groups) {
+    for (let i = 0; i < g.bearings.length; i++) {
+      const b = g.bearings[i];
+      rows.push([g.size, i + 1, b.mass, b.diameter, b.time,
+                 b.volume.toExponential(6), b.density.toFixed(2), b.viscosity.toFixed(6)]);
+    }
+  }
+  rows.push([]);
+
+  // Group summary
+  rows.push(["Group Summary"]);
+  rows.push(["Group", "Mean Density (kg/m^3)", "Mean Viscosity (Pa.s)"]);
+  for (const g of d.groups) {
+    rows.push([g.size, g.meanDensity.toFixed(2), g.meanVisc.toFixed(6)]);
+  }
+  rows.push([]);
+
+  // Overall
+  rows.push(["Overall Results"]);
+  rows.push(["Overall Average Viscosity (Pa.s)", d.overall.toFixed(6)]);
+  rows.push(["Standard Deviation (Pa.s)", d.std.toFixed(6)]);
+  rows.push(["Relative Std Dev (%)", d.relStd.toFixed(2)]);
+  rows.push([]);
+
+  // Closest fluid
+  let closestName = "", closestDiff = Infinity;
+  for (const [name, eta] of KNOWN_FLUIDS) {
+    const diff = Math.abs(Math.log10(eta + 1e-30) - Math.log10(d.overall + 1e-30));
+    if (diff < closestDiff) { closestDiff = diff; closestName = name; }
+  }
+  rows.push(["Closest Known Fluid", closestName]);
+  rows.push([]);
+
+  // Energy analysis
+  rows.push(["Energy Consumption Analysis"]);
+  rows.push(["Group", "Bearing #", "Terminal Velocity (m/s)", "Drag Force (N)",
+             "Power Dissipated (W)", "Energy Lost (J)", "Grav. PE Released (J)", "Viscous/PE (%)"]);
+  let csvTotalEnergy = 0, csvTotalPower = 0, csvCount = 0;
+  for (const g of d.groups) {
+    for (let i = 0; i < g.bearings.length; i++) {
+      const b = g.bearings[i];
+      const pe = b.mass * G * d.fallDist;
+      const ratio = pe > 0 ? (b.energy / pe * 100).toFixed(1) : "N/A";
+      rows.push([g.size, i + 1, b.vTerminal.toExponential(4), b.dragForce.toExponential(4),
+                 b.power.toExponential(4), b.energy.toExponential(4), pe.toExponential(4), ratio]);
+      csvTotalEnergy += b.energy;
+      csvTotalPower += b.power;
+      csvCount++;
+    }
+  }
+  rows.push([]);
+  rows.push(["Average Energy Loss per Fall (J)", (csvTotalEnergy / csvCount).toExponential(4)]);
+  rows.push(["Average Power Dissipated (W)", (csvTotalPower / csvCount).toExponential(4)]);
+
+  // Cost analysis (if calculated)
+  const costCard = document.getElementById("results-cost");
+  if (costCard && costCard.style.display !== "none") {
+    const pipeDia = parseFloat(document.getElementById("pipe-dia").value);
+    const pipeLen = parseFloat(document.getElementById("pipe-len").value);
+    const flowRate = parseFloat(document.getElementById("flow-rate").value);
+    const opHours = parseFloat(document.getElementById("op-hours").value);
+    const elecCost = parseFloat(document.getElementById("elec-cost").value);
+    const pumpEff = parseFloat(document.getElementById("pump-eff").value) / 100;
+    const r1 = parseFloat(document.getElementById("visc-reduce-1").value) / 100;
+    const r2 = parseFloat(document.getElementById("visc-reduce-2").value) / 100;
+
+    rows.push([]);
+    rows.push(["Industrial Cost Optimisation"]);
+    rows.push(["Pipe Diameter (m)", pipeDia]);
+    rows.push(["Pipe Length (m)", pipeLen]);
+    rows.push(["Flow Rate (m^3/s)", flowRate]);
+    rows.push(["Operating Hours/Year", opHours]);
+    rows.push(["Electricity Cost (/kWh)", elecCost]);
+    rows.push(["Pump Efficiency (%)", (pumpEff * 100).toFixed(0)]);
+    rows.push([]);
+
+    const csvScenario = (visc, label) => {
+      const dp = (128 * visc * pipeLen * flowRate) / (Math.PI * Math.pow(pipeDia, 4));
+      const pw = (dp * flowRate / pumpEff) / 1000;
+      const ac = pw * opHours * elecCost;
+      return [label, visc.toFixed(6), dp.toFixed(2), pw.toFixed(4), (pw * opHours).toFixed(2), ac.toFixed(2)];
+    };
+    rows.push(["Scenario", "Viscosity (Pa.s)", "Pressure Drop (Pa)", "Pump Power (kW)", "Annual Energy (kWh)", "Annual Cost"]);
+    rows.push(csvScenario(d.overall, "Current"));
+    rows.push(csvScenario(d.overall * (1 - r1), `${(r1*100).toFixed(0)}% reduction`));
+    rows.push(csvScenario(d.overall * (1 - r2), `${(r2*100).toFixed(0)}% reduction`));
+  }
+
+  // Convert to CSV string (escape commas/quotes in values)
+  const csv = rows.map(row =>
+    row.map(cell => {
+      const s = String(cell);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(",")
+  ).join("\r\n");
+
+  // Download
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "viscosity_results.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Init ── */
+document.addEventListener("DOMContentLoaded", () => {
+  buildBearingGroups();
+
+  document.getElementById("fluid-mass").addEventListener("input", liveUpdateFluidDensity);
+  document.getElementById("fluid-vol").addEventListener("input", liveUpdateFluidDensity);
+  document.getElementById("bearing-groups").addEventListener("input", liveUpdateBearing);
+
+  document.getElementById("btn-calc").addEventListener("click", runCalc);
+  document.getElementById("btn-sample").addEventListener("click", loadSample);
+  document.getElementById("btn-clear").addEventListener("click", clearAll);
+  document.getElementById("btn-csv").addEventListener("click", downloadCSV);
+  document.getElementById("btn-cost").addEventListener("click", runCostAnalysis);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial Facility Efficiency Analyzer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563eb;--primary-hover:#1d4ed8;--primary-light:#dbeafe;
+  --bg:#f8fafc;--card:#fff;--text:#1e293b;--muted:#64748b;
+  --border:#e2e8f0;--success:#16a34a;--success-light:#dcfce7;
+  --warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fef2f2;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+header{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;padding:2rem 1rem;text-align:center}
+header h1{font-size:1.75rem;font-weight:700;letter-spacing:-.02em}
+header p{color:#cbd5e1;margin-top:.25rem;font-size:.95rem}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.card h2{font-size:1.2rem;margin-bottom:1rem;color:var(--primary);display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:1.05rem;margin-bottom:.75rem;color:var(--text)}
+.field{margin-bottom:.85rem}
+.field label{display:block;font-weight:600;font-size:.875rem;margin-bottom:.3rem}
+.field .hint{font-weight:400;color:var(--muted);font-size:.8rem}
+.field input,.field select{width:100%;height:2.5rem;padding:0 .75rem;border:1px solid var(--border);
+  border-radius:8px;font-size:.95rem;color:var(--text);background:#fff;transition:border-color .15s,box-shadow .15s}
+.field select{appearance:auto}
+.field input:focus,.field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.row{display:grid;gap:1rem}.row-2{grid-template-columns:1fr 1fr}.row-3{grid-template-columns:1fr 1fr 1fr}
+.row-4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:768px){.row-2,.row-3,.row-4{grid-template-columns:1fr}}
+button.primary{background:var(--primary);color:#fff;border:none;border-radius:8px;
+  padding:.75rem 2rem;font-size:1rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+button.primary:hover{background:var(--primary-hover)}
+button.primary:active{transform:scale(.98)}
+button.primary:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+button.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;
+  padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+button.secondary:hover{background:var(--primary-light)}
+button.danger{background:#fff;color:var(--error);border:1px solid var(--error);border-radius:6px;
+  padding:.35rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer}
+button.danger:hover{background:var(--error-light)}
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+.comp-card{border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;background:#fafbfc;position:relative}
+.comp-card h4{font-size:.95rem;margin-bottom:.75rem;color:var(--primary);display:flex;justify-content:space-between;align-items:center}
+.comp-loss{background:var(--warning-light);border-radius:8px;padding:.5rem .75rem;margin-top:.5rem;font-size:.85rem;font-weight:600}
+.comp-loss.good{background:var(--success-light);color:#166534}
+.comp-loss.bad{background:var(--error-light);color:#991b1b}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.75rem 0}
+th,td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#f8fafc;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+td{font-variant-numeric:tabular-nums}
+.stat{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.stat:last-child{border-bottom:none}
+.stat-label{color:var(--muted)}.stat-value{font-weight:600}
+.analysis{border-left:3px solid var(--primary);padding:.75rem 1rem;background:#f0f9ff;border-radius:0 8px 8px 0;margin:.75rem 0;font-size:.9rem;line-height:1.7}
+.analysis.warn{border-left-color:var(--warning);background:var(--warning-light)}
+.analysis.good{border-left-color:var(--success);background:var(--success-light)}
+.highlight{border-radius:6px;padding:.75rem 1rem;font-weight:600;text-align:center;margin:.75rem 0;font-size:1rem}
+.savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+@media(max-width:600px){.savings-grid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.75rem 0}
+#results{display:none}
+#results.visible{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:1rem}
+.chart-container canvas{width:100%!important;height:auto!important;border-radius:10px;border:1px solid var(--border);background:#fff}
+.chart-title{font-weight:700;font-size:1.05rem;margin-bottom:.25rem;color:var(--text)}
+.chart-subtitle{font-size:.85rem;color:var(--muted);margin-bottom:.75rem}
+.add-row{display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem}
+.add-row .field{margin-bottom:0;flex:1;min-width:200px}
+.empty-msg{text-align:center;padding:2rem;color:var(--muted);font-style:italic}
+footer{text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Industrial Facility Efficiency Analyzer</h1>
+  <p>Analyse facility-scale subsystem losses, identify upgrade priorities, and calculate financial returns</p>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h2>Facility Settings</h2>
+    <div class="row row-4">
+      <div class="field">
+        <label for="fac-hours">Operating Hours <span class="hint">(per year)</span></label>
+        <input type="number" id="fac-hours" value="6000" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="fac-tariff">Energy Tariff <span class="hint">($/kWh)</span></label>
+        <input type="number" id="fac-tariff" value="0.12" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="fac-demand">Demand Charge <span class="hint">($/kW/month)</span></label>
+        <input type="number" id="fac-demand" value="12" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="fac-gas">Gas Price <span class="hint">($/therm)</span></label>
+        <input type="number" id="fac-gas" value="1.10" step="any" min="0">
+      </div>
+    </div>
+    <div class="row row-4" style="margin-top:.5rem">
+      <div class="field">
+        <label for="fac-co2">Carbon Intensity <span class="hint">(kgCO2/kWh)</span></label>
+        <input type="number" id="fac-co2" value="0.42" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="fac-discount">Discount Rate <span class="hint">(%)</span></label>
+        <input type="number" id="fac-discount" value="8" step="any" min="0">
+      </div>
+      <div class="field">
+        <label for="fac-period">Analysis Period <span class="hint">(years)</span></label>
+        <input type="number" id="fac-period" value="10" step="1" min="1">
+      </div>
+      <div class="field">
+        <label for="fac-facilities">Number of Facilities</label>
+        <input type="number" id="fac-facilities" value="1" step="1" min="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Subsystems</h2>
+    <div class="add-row">
+      <div class="field">
+        <label for="sub-type">Subsystem Type</label>
+        <select id="sub-type"></select>
+      </div>
+      <button class="primary" id="btn-add" type="button" style="height:2.5rem">+ Add Subsystem</button>
+      <button class="secondary" id="btn-demo" type="button" style="height:2.5rem">Load Demo Facility</button>
+    </div>
+    <div id="comp-list"></div>
+    <div id="comp-empty" class="empty-msg">No subsystems added yet. Select a type above and click "Add Subsystem".</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="primary" id="btn-analyze" type="button">Analyse Facility Efficiency</button>
+    <button class="secondary" id="btn-csv" type="button">Download CSV Report</button>
+  </div>
+
+  <div id="results" aria-live="polite">
+    <div class="card" id="res-summary"></div>
+    <div class="card" id="res-breakdown"></div>
+    <div class="card" id="res-alts"></div>
+    <div class="card" id="res-cost"></div>
+    <div class="card" id="res-priority"></div>
+    <div class="card" id="res-charts"></div>
+  </div>
+</main>
+
+<footer>
+  <p>Estimates based on typical industrial equipment specifications. Actual performance depends on operating conditions, maintenance, and site-specific factors.</p>
+</footer>
+
+<script>
+/* ================================================================
+   DATA MODEL — Subsystem Types
+   ================================================================ */
+
+const SUB_TYPES = {
+  "transformer":  { label: "Transformer (Distribution)", cat: "Power Distribution" },
+  "cable":        { label: "Cable / Busbar Losses", cat: "Power Distribution" },
+  "switchgear":   { label: "Switchgear", cat: "Power Distribution" },
+  "motor":        { label: "Industrial Motor", cat: "Motor Systems" },
+  "pump":         { label: "Pump System", cat: "Motor Systems" },
+  "fan":          { label: "Fan / Blower", cat: "Motor Systems" },
+  "compressor-m": { label: "Compressor (Motor-Driven)", cat: "Motor Systems" },
+  "chiller":      { label: "Chiller", cat: "HVAC" },
+  "ahu":          { label: "Air Handling Unit", cat: "HVAC" },
+  "cooling-tower":{ label: "Cooling Tower", cat: "HVAC" },
+  "heat-pump":    { label: "Heat Pump", cat: "HVAC" },
+  "lighting":     { label: "Lighting System", cat: "Lighting" },
+  "vfd":          { label: "Variable Speed Drive", cat: "Variable Speed Drives" },
+  "compressed-air":{ label: "Compressed Air System", cat: "Compressed Air" },
+  "datacenter":   { label: "IT / Data Centre Load", cat: "IT / Data Centre" },
+  "furnace":      { label: "Electric Furnace", cat: "Process Heating" },
+  "boiler":       { label: "Gas Boiler", cat: "Process Heating" },
+  "solar":        { label: "Solar PV", cat: "Renewables" },
+  "wind":         { label: "Wind Turbine", cat: "Renewables" },
+  "pfc":          { label: "Power Factor Correction", cat: "Power Factor Correction" },
+};
+
+/* ================================================================
+   PRESETS — realistic industrial values
+   ================================================================ */
+
+const PRESETS = {
+  "transformer": [
+    { name:"1000 kVA Oil-Filled", rated_kw:1000, no_load_loss:1.8, full_load_loss:12, load_factor:65, hours:8760, qty:1, unit_cost:25000, install_cost:8000 },
+    { name:"2500 kVA Dry-Type", rated_kw:2500, no_load_loss:4.5, full_load_loss:28, load_factor:55, hours:8760, qty:1, unit_cost:65000, install_cost:15000 },
+    { name:"500 kVA Pad-Mount", rated_kw:500, no_load_loss:1.1, full_load_loss:7.5, load_factor:70, hours:8760, qty:2, unit_cost:15000, install_cost:5000 },
+  ],
+  "cable": [
+    { name:"Main Feeder 400A Cu", rated_kw:250, current_a:400, resistance_ohm_km:0.0778, length_m:120, circuits:2, load_factor:70, hours:6000, qty:1, unit_cost:18000, install_cost:12000 },
+    { name:"Sub-Distribution 200A", rated_kw:130, current_a:200, resistance_ohm_km:0.124, length_m:80, circuits:4, load_factor:60, hours:6000, qty:1, unit_cost:8000, install_cost:6000 },
+    { name:"Motor Feeder 100A", rated_kw:55, current_a:100, resistance_ohm_km:0.253, length_m:50, circuits:6, load_factor:75, hours:6000, qty:1, unit_cost:4000, install_cost:3000 },
+  ],
+  "switchgear": [
+    { name:"LV Switchboard 3200A", rated_kw:2000, loss_kw:3.5, load_factor:60, hours:8760, qty:1, unit_cost:45000, install_cost:10000 },
+    { name:"MV Switchgear 630A", rated_kw:800, loss_kw:1.8, load_factor:55, hours:8760, qty:1, unit_cost:35000, install_cost:8000 },
+  ],
+  "motor": [
+    { name:"75 kW IE2 Induction Motor", rated_kw:75, efficiency:91.7, load_factor:75, hours:6000, qty:4, unit_cost:5500, install_cost:2000 },
+    { name:"200 kW IE2 Induction Motor", rated_kw:200, efficiency:94.0, load_factor:65, hours:6000, qty:2, unit_cost:14000, install_cost:4000 },
+    { name:"37 kW IE1 Motor (old)", rated_kw:37, efficiency:88.5, load_factor:80, hours:6000, qty:8, unit_cost:2500, install_cost:1200 },
+  ],
+  "pump": [
+    { name:"Centrifugal Pump 55 kW", rated_kw:55, efficiency:78, load_factor:70, hours:6000, qty:3, unit_cost:8500, install_cost:3000 },
+    { name:"Booster Pump 15 kW", rated_kw:15, efficiency:65, load_factor:60, hours:4000, qty:4, unit_cost:3200, install_cost:1500 },
+    { name:"Process Pump 110 kW", rated_kw:110, efficiency:82, load_factor:75, hours:6000, qty:2, unit_cost:16000, install_cost:5000 },
+  ],
+  "fan": [
+    { name:"Centrifugal Fan 30 kW", rated_kw:30, efficiency:72, load_factor:65, hours:6000, qty:4, unit_cost:4500, install_cost:2000 },
+    { name:"Axial Fan 15 kW", rated_kw:15, efficiency:68, load_factor:70, hours:5000, qty:6, unit_cost:2200, install_cost:1000 },
+  ],
+  "compressor-m": [
+    { name:"Screw Compressor 90 kW", rated_kw:90, efficiency:85, load_factor:70, hours:6000, qty:2, unit_cost:28000, install_cost:8000 },
+    { name:"Reciprocating Compressor 45 kW", rated_kw:45, efficiency:78, load_factor:65, hours:5000, qty:3, unit_cost:15000, install_cost:5000 },
+  ],
+  "chiller": [
+    { name:"500 kWt Screw Chiller", cooling_kw:500, cop:4.2, load_factor:65, hours:3000, qty:2, unit_cost:85000, install_cost:25000 },
+    { name:"1000 kWt Centrifugal Chiller", cooling_kw:1000, cop:5.5, load_factor:60, hours:3000, qty:1, unit_cost:150000, install_cost:40000 },
+    { name:"200 kWt Air-Cooled Chiller", cooling_kw:200, cop:3.0, load_factor:70, hours:2500, qty:3, unit_cost:42000, install_cost:12000 },
+  ],
+  "ahu": [
+    { name:"AHU 50,000 CFM", rated_kw:45, efficiency:82, load_factor:60, hours:4000, qty:3, unit_cost:32000, install_cost:15000 },
+    { name:"AHU 20,000 CFM", rated_kw:18, efficiency:78, load_factor:65, hours:4000, qty:5, unit_cost:15000, install_cost:8000 },
+  ],
+  "cooling-tower": [
+    { name:"Cooling Tower 500 kWt", rated_kw:22, efficiency:88, load_factor:55, hours:3000, qty:2, unit_cost:35000, install_cost:12000 },
+    { name:"Cooling Tower 200 kWt", rated_kw:11, efficiency:85, load_factor:60, hours:3000, qty:3, unit_cost:18000, install_cost:6000 },
+  ],
+  "heat-pump": [
+    { name:"Air-Source Heat Pump 100 kWt", cooling_kw:100, cop:3.2, load_factor:60, hours:3500, qty:2, unit_cost:28000, install_cost:10000 },
+    { name:"Ground-Source Heat Pump 200 kWt", cooling_kw:200, cop:4.5, load_factor:55, hours:4000, qty:1, unit_cost:75000, install_cost:30000 },
+  ],
+  "lighting": [
+    { name:"Warehouse HID 400W", wattage:400, ballast_loss:12, qty:120, occupancy_factor:90, hours:4000, efficacy:80, unit_cost:85, install_cost:45 },
+    { name:"Office Fluorescent T8", wattage:72, ballast_loss:10, qty:500, occupancy_factor:70, hours:3000, efficacy:90, unit_cost:25, install_cost:15 },
+    { name:"Parking LED 150W", wattage:150, ballast_loss:5, qty:60, occupancy_factor:100, hours:4500, efficacy:130, unit_cost:120, install_cost:50 },
+  ],
+  "vfd": [
+    { name:"VFD on 55 kW Pump", motor_kw:55, motor_eff:91, vfd_eff:97, avg_speed:75, hours:6000, qty:3, unit_cost:4500, install_cost:2000 },
+    { name:"VFD on 30 kW Fan", motor_kw:30, motor_eff:89, vfd_eff:96, avg_speed:70, hours:5000, qty:4, unit_cost:2800, install_cost:1500 },
+    { name:"VFD on 110 kW Compressor", motor_kw:110, motor_eff:94, vfd_eff:97, avg_speed:85, hours:6000, qty:2, unit_cost:8500, install_cost:3000 },
+  ],
+  "compressed-air": [
+    { name:"Rotary Screw 75 kW", rated_kw:75, comp_eff:82, leak_rate:25, hours:6000, qty:2, unit_cost:22000, install_cost:6000 },
+    { name:"Rotary Screw 150 kW", rated_kw:150, comp_eff:85, leak_rate:20, hours:6000, qty:1, unit_cost:45000, install_cost:10000 },
+    { name:"Small Reciprocating 22 kW", rated_kw:22, comp_eff:72, leak_rate:30, hours:4000, qty:3, unit_cost:8000, install_cost:3000 },
+  ],
+  "datacenter": [
+    { name:"Server Room 200 kW IT", it_load_kw:200, pue:1.8, ups_eff:92, hours:8760, qty:1, unit_cost:120000, install_cost:50000 },
+    { name:"Small Data Closet 20 kW", it_load_kw:20, pue:2.2, ups_eff:88, hours:8760, qty:3, unit_cost:25000, install_cost:10000 },
+    { name:"Edge Data Centre 500 kW", it_load_kw:500, pue:1.5, ups_eff:95, hours:8760, qty:1, unit_cost:350000, install_cost:100000 },
+  ],
+  "furnace": [
+    { name:"Arc Furnace 2000 kW", rated_kw:2000, efficiency:72, load_factor:55, hours:5000, qty:1, unit_cost:250000, install_cost:80000 },
+    { name:"Resistance Furnace 500 kW", rated_kw:500, efficiency:85, load_factor:60, hours:5000, qty:2, unit_cost:65000, install_cost:20000 },
+  ],
+  "boiler": [
+    { name:"Gas Boiler 3000 kWt", thermal_kw:3000, efficiency:82, load_factor:50, hours:4000, qty:1, unit_cost:85000, install_cost:25000 },
+    { name:"Gas Boiler 1000 kWt", thermal_kw:1000, efficiency:80, load_factor:55, hours:4000, qty:2, unit_cost:35000, install_cost:12000 },
+    { name:"Steam Boiler 5000 kWt", thermal_kw:5000, efficiency:78, load_factor:45, hours:5000, qty:1, unit_cost:150000, install_cost:50000 },
+  ],
+  "solar": [
+    { name:"Rooftop PV 250 kWp", peak_kw:250, yield_kwh_kwp:1350, inverter_eff:97, qty:1, unit_cost:275000, install_cost:50000 },
+    { name:"Carpark PV 100 kWp", peak_kw:100, yield_kwh_kwp:1300, inverter_eff:96, qty:1, unit_cost:125000, install_cost:25000 },
+  ],
+  "wind": [
+    { name:"Small Wind Turbine 100 kW", peak_kw:100, capacity_factor:25, hours:8760, qty:1, unit_cost:180000, install_cost:60000 },
+    { name:"Medium Wind Turbine 500 kW", peak_kw:500, capacity_factor:28, hours:8760, qty:1, unit_cost:650000, install_cost:150000 },
+  ],
+  "pfc": [
+    { name:"PFC Bank for 800 kW Load", real_power_kw:800, current_pf:0.78, target_pf:0.96, kvar_rate:5.50, qty:1, unit_cost:12000, install_cost:4000 },
+    { name:"PFC Bank for 2000 kW Load", real_power_kw:2000, current_pf:0.82, target_pf:0.97, kvar_rate:5.50, qty:1, unit_cost:28000, install_cost:8000 },
+  ],
+};
+
+/* ================================================================
+   GREEN ALTERNATIVES
+   ================================================================ */
+
+const GREEN_ALTS = {
+  "transformer": { name:"Amorphous Core Transformer", no_load_mult:0.25, full_load_mult:0.85, cost_mult:1.6, note:"Amorphous core cuts no-load losses by 70-75%" },
+  "cable": { name:"Upsized Cable (next gauge)", resistance_mult:0.65, cost_mult:1.35, note:"Larger cross-section reduces I2R loss by ~35%" },
+  "switchgear": { name:"Low-Loss Switchgear", loss_mult:0.7, cost_mult:1.3, note:"Modern low-resistance busbar and contacts" },
+  "motor": { name:"IE5 Ultra-Premium Motor", efficiency:96.5, cost_mult:1.8, note:"IE5 motors cut losses by 40-60% vs IE2" },
+  "pump": { name:"High-Eff Pump + Impeller Trim", efficiency:88, cost_mult:1.4, note:"Optimised impeller and casing geometry" },
+  "fan": { name:"High-Eff EC Fan", efficiency:85, cost_mult:1.5, note:"Electronically commutated fans with aerodynamic blades" },
+  "compressor-m": { name:"High-Eff Screw Compressor", efficiency:92, cost_mult:1.4, note:"Premium screw element with tighter tolerances" },
+  "chiller": { name:"Magnetic-Bearing Centrifugal Chiller", cop:7.0, cost_mult:1.5, note:"Oil-free magnetic bearings + variable speed, COP 6.5-7.5" },
+  "ahu": { name:"High-Eff AHU w/ EC Fans", efficiency:92, cost_mult:1.4, note:"EC plug fans + low-pressure-drop filters" },
+  "cooling-tower": { name:"High-Eff Cooling Tower", efficiency:94, cost_mult:1.3, note:"Optimised fill, EC fans, reduced drift" },
+  "heat-pump": { name:"High-COP Heat Pump (CO2 / R290)", cop:5.5, cost_mult:1.5, note:"Natural refrigerant heat pumps with higher seasonal COP" },
+  "lighting": { name:"LED Highbay/Panel + DALI Controls", efficacy:180, ballast_loss:3, occupancy_factor_mult:0.7, cost_mult:1.8, note:"LED + occupancy/daylight dimming saves 60-80%" },
+  "vfd": { name:"Premium VFD + IE5 Motor", motor_eff:96.5, vfd_eff:98.5, cost_mult:1.6, note:"SiC-based VFD with IE5 motor reduces total losses" },
+  "compressed-air": { name:"VSD Compressor + Leak Fix", comp_eff:92, leak_rate:8, cost_mult:1.4, note:"VSD compressor + systematic leak repair program" },
+  "datacenter": { name:"Efficient DC w/ Hot Aisle Containment", pue:1.2, ups_eff:97, cost_mult:1.4, note:"Hot/cold aisle containment, Li-ion UPS, free cooling" },
+  "furnace": { name:"Insulated Furnace + Waste Heat Recovery", efficiency:88, cost_mult:1.5, note:"Improved insulation and heat recovery reduce input" },
+  "boiler": { name:"Condensing Boiler", efficiency:95, cost_mult:1.4, note:"Condensing mode recovers latent heat, 95%+ efficiency" },
+  "solar": { name:"Higher-Yield Bifacial Panels", yield_mult:1.12, inverter_eff:98, cost_mult:1.15, note:"Bifacial + optimisers increase yield 10-15%" },
+  "wind": { name:"Optimised Turbine Siting", capacity_factor_add:5, cost_mult:1.1, note:"Better siting, taller tower, advanced controls" },
+  "pfc": { name:"Active PFC + Harmonic Filter", target_pf:0.99, cost_mult:1.6, note:"Active PFC maintains near-unity PF under varying loads" },
+};
+
+/* ================================================================
+   FIELD DEFINITIONS for each subsystem form
+   ================================================================ */
+
+const FIELD_DEFS = {
+  "transformer": [["rated_kw","Rated kVA","kVA"],["no_load_loss","No-Load Loss","kW"],["full_load_loss","Full-Load Loss","kW"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "cable": [["current_a","Current","A"],["resistance_ohm_km","Resistance","ohm/km"],["length_m","Length","m"],["circuits","Circuits",""],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "switchgear": [["rated_kw","Rated kW","kW"],["loss_kw","Rated Loss","kW"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "motor": [["rated_kw","Rated Power","kW"],["efficiency","Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "pump": [["rated_kw","Shaft Power","kW"],["efficiency","System Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "fan": [["rated_kw","Shaft Power","kW"],["efficiency","System Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "compressor-m": [["rated_kw","Rated Power","kW"],["efficiency","Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "chiller": [["cooling_kw","Cooling Capacity","kWt"],["cop","COP",""],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "ahu": [["rated_kw","Fan Power","kW"],["efficiency","System Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "cooling-tower": [["rated_kw","Fan/Pump Power","kW"],["efficiency","Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "heat-pump": [["cooling_kw","Thermal Output","kWt"],["cop","COP",""],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "lighting": [["wattage","Lamp Wattage","W"],["ballast_loss","Ballast/Driver Loss","%"],["qty","Number of Fittings",""],["occupancy_factor","Occupancy Factor","%"],["hours","Hours/Year","h"],["efficacy","Efficacy","lm/W"],["unit_cost","Unit Cost","$/fitting"],["install_cost","Install Cost","$/fitting"]],
+  "vfd": [["motor_kw","Motor kW","kW"],["motor_eff","Motor Efficiency","%"],["vfd_eff","VFD Efficiency","%"],["avg_speed","Average Speed","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "compressed-air": [["rated_kw","Compressor Input","kW"],["comp_eff","Compressor Efficiency","%"],["leak_rate","Leak Rate","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "datacenter": [["it_load_kw","IT Load","kW"],["pue","PUE",""],["ups_eff","UPS Efficiency","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "furnace": [["rated_kw","Rated Input","kW"],["efficiency","Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "boiler": [["thermal_kw","Thermal Output","kWt"],["efficiency","Boiler Efficiency","%"],["load_factor","Load Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "solar": [["peak_kw","Peak Capacity","kWp"],["yield_kwh_kwp","Annual Yield","kWh/kWp"],["inverter_eff","Inverter Efficiency","%"],["qty","Quantity",""],["unit_cost","System Cost","$"],["install_cost","Install Cost","$"]],
+  "wind": [["peak_kw","Rated Capacity","kW"],["capacity_factor","Capacity Factor","%"],["hours","Hours/Year","h"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+  "pfc": [["real_power_kw","Real Power","kW"],["current_pf","Current Power Factor",""],["target_pf","Target Power Factor",""],["kvar_rate","kVAr Penalty Rate","$/kVAr/mo"],["qty","Quantity",""],["unit_cost","Unit Cost","$"],["install_cost","Install Cost","$"]],
+};
+
+/* ================================================================
+   LOSS CALCULATORS
+   ================================================================ */
+
+const LOSS_FN = {
+  "transformer": c => {
+    // loss = no_load_loss + (load_factor%)^2 * full_load_loss
+    const lf = c.load_factor / 100;
+    const loss_kw = c.no_load_loss + (lf * lf) * c.full_load_loss;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, is_electric: true };
+  },
+  "cable": c => {
+    // I^2 * R * length/1000 * circuits, scaled by load_factor^2
+    const lf = c.load_factor / 100;
+    const loss_w = (c.current_a * lf) * (c.current_a * lf) * c.resistance_ohm_km * (c.length_m / 1000) * c.circuits;
+    const loss_kw = loss_w / 1000;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, is_electric: true };
+  },
+  "switchgear": c => {
+    const lf = c.load_factor / 100;
+    const loss_kw = c.loss_kw * (lf * lf);
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, is_electric: true };
+  },
+  "motor": c => {
+    // loss = (rated_kw * load_factor / eff) - (rated_kw * load_factor)
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const shaft_kw = c.rated_kw * lf;
+    const input_kw = shaft_kw / eff;
+    const loss_kw = input_kw - shaft_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "pump": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const useful_kw = c.rated_kw * lf;
+    const input_kw = useful_kw / eff;
+    const loss_kw = input_kw - useful_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "fan": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const useful_kw = c.rated_kw * lf;
+    const input_kw = useful_kw / eff;
+    const loss_kw = input_kw - useful_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "compressor-m": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const useful_kw = c.rated_kw * lf;
+    const input_kw = useful_kw / eff;
+    const loss_kw = input_kw - useful_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "chiller": c => {
+    // electrical_input = cooling_kW * load_factor / COP
+    const lf = c.load_factor / 100;
+    const input_kw = (c.cooling_kw * lf) / c.cop;
+    const loss_kw = input_kw; // entire electrical input is the "consumption"
+    const annual_kwh = input_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "ahu": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const input_kw = c.rated_kw * lf / eff;
+    const loss_kw = input_kw - c.rated_kw * lf;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "cooling-tower": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const input_kw = c.rated_kw * lf / eff;
+    const loss_kw = input_kw - c.rated_kw * lf;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "heat-pump": c => {
+    const lf = c.load_factor / 100;
+    const input_kw = (c.cooling_kw * lf) / c.cop;
+    const loss_kw = input_kw;
+    const annual_kwh = input_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "lighting": c => {
+    // total_kW = (wattage/1000) * (1 + ballast_loss%) * qty * occupancy_factor
+    const bl = c.ballast_loss / 100;
+    const occ = c.occupancy_factor / 100;
+    const total_kw = (c.wattage / 1000) * (1 + bl) * c.qty * occ;
+    const useful_kw = (c.wattage / 1000) * c.qty * occ; // lamp power only
+    const loss_kw = total_kw - useful_kw + useful_kw; // full consumption is the "loss" for comparison
+    const annual_kwh = total_kw * c.hours;
+    return { loss_kw: total_kw, annual_kwh, input_kw: total_kw, is_electric: true };
+  },
+  "vfd": c => {
+    // power = motor_kw * (avg_speed%)^3 / motor_eff / vfd_eff (affinity law)
+    const speed = c.avg_speed / 100;
+    const mEff = c.motor_eff / 100;
+    const vEff = c.vfd_eff / 100;
+    const mech_kw = c.motor_kw * (speed * speed * speed);
+    const input_kw = mech_kw / mEff / vEff;
+    const loss_kw = input_kw - mech_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, mech_kw, is_electric: true };
+  },
+  "compressed-air": c => {
+    // loss = input * (1 - eff * (1 - leak_rate))
+    const eff = c.comp_eff / 100;
+    const leak = c.leak_rate / 100;
+    const useful_fraction = eff * (1 - leak);
+    const loss_kw = c.rated_kw * (1 - useful_fraction);
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw: c.rated_kw, is_electric: true };
+  },
+  "datacenter": c => {
+    // overhead = IT_load * (PUE - 1) + UPS_loss
+    const ups_loss = c.it_load_kw * (1 - c.ups_eff / 100);
+    const overhead_kw = c.it_load_kw * (c.pue - 1) + ups_loss;
+    const total_kw = c.it_load_kw + overhead_kw;
+    const annual_kwh = overhead_kw * c.hours * c.qty;
+    return { loss_kw: overhead_kw, annual_kwh, input_kw: total_kw, is_electric: true };
+  },
+  "furnace": c => {
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const input_kw = c.rated_kw * lf;
+    const useful_kw = input_kw * eff;
+    const loss_kw = input_kw - useful_kw;
+    const annual_kwh = loss_kw * c.hours * c.qty;
+    return { loss_kw, annual_kwh, input_kw, is_electric: true };
+  },
+  "boiler": c => {
+    // Gas boiler: fuel_input = thermal_output * load_factor / efficiency
+    const lf = c.load_factor / 100;
+    const eff = c.efficiency / 100;
+    const thermal_out = c.thermal_kw * lf;
+    const fuel_input_kw = thermal_out / eff;
+    const loss_kw = fuel_input_kw - thermal_out;
+    const annual_kwh_thermal = fuel_input_kw * c.hours * c.qty; // kWh of gas
+    // Convert to therms: 1 therm = 29.3071 kWh
+    const annual_therms = annual_kwh_thermal / 29.3071;
+    return { loss_kw, annual_kwh: 0, annual_therms, fuel_input_kw, is_electric: false, is_gas: true };
+  },
+  "solar": c => {
+    // annual_gen = peak_kW * yield * inverter_eff (negative consumption)
+    const inv_eff = c.inverter_eff / 100;
+    const annual_kwh = -(c.peak_kw * c.yield_kwh_kwp * inv_eff * c.qty);
+    return { loss_kw: 0, annual_kwh, is_electric: true, is_generation: true };
+  },
+  "wind": c => {
+    const cf = c.capacity_factor / 100;
+    const annual_kwh = -(c.peak_kw * cf * c.hours * c.qty);
+    return { loss_kw: 0, annual_kwh, is_electric: true, is_generation: true };
+  },
+  "pfc": c => {
+    // kVAr_saved = P * (tan(acos(current_PF)) - tan(acos(target_PF)))
+    const tan_cur = Math.tan(Math.acos(c.current_pf));
+    const tan_tgt = Math.tan(Math.acos(c.target_pf));
+    const kvar_saved = c.real_power_kw * (tan_cur - tan_tgt) * c.qty;
+    const annual_penalty_saved = kvar_saved * c.kvar_rate * 12;
+    return { loss_kw: 0, annual_kwh: 0, kvar_saved, annual_penalty_saved, is_electric: false, is_pfc: true };
+  },
+};
+
+function calcLoss(c) {
+  const fn = LOSS_FN[c.type];
+  return fn ? fn(c) : { loss_kw: 0, annual_kwh: 0, is_electric: true };
+}
+
+/* Calculate alternative loss */
+function calcAltLoss(c) {
+  const alt = GREEN_ALTS[c.type];
+  if (!alt) return null;
+  const a = { ...c };
+  switch (c.type) {
+    case "transformer":
+      a.no_load_loss = c.no_load_loss * alt.no_load_mult;
+      a.full_load_loss = c.full_load_loss * alt.full_load_mult;
+      break;
+    case "cable":
+      a.resistance_ohm_km = c.resistance_ohm_km * alt.resistance_mult;
+      break;
+    case "switchgear":
+      a.loss_kw = c.loss_kw * alt.loss_mult;
+      break;
+    case "motor": case "pump": case "fan": case "compressor-m":
+    case "ahu": case "cooling-tower": case "furnace":
+      a.efficiency = alt.efficiency;
+      break;
+    case "chiller": case "heat-pump":
+      a.cop = alt.cop;
+      break;
+    case "lighting":
+      // Same lumen output at higher efficacy means less wattage
+      a.wattage = c.wattage * (c.efficacy / alt.efficacy);
+      a.ballast_loss = alt.ballast_loss;
+      if (alt.occupancy_factor_mult) a.occupancy_factor = c.occupancy_factor * alt.occupancy_factor_mult;
+      break;
+    case "vfd":
+      a.motor_eff = alt.motor_eff;
+      a.vfd_eff = alt.vfd_eff;
+      break;
+    case "compressed-air":
+      a.comp_eff = alt.comp_eff;
+      a.leak_rate = alt.leak_rate;
+      break;
+    case "datacenter":
+      a.pue = alt.pue;
+      a.ups_eff = alt.ups_eff;
+      break;
+    case "boiler":
+      a.efficiency = alt.efficiency;
+      break;
+    case "solar":
+      a.yield_kwh_kwp = c.yield_kwh_kwp * (alt.yield_mult || 1);
+      a.inverter_eff = alt.inverter_eff;
+      break;
+    case "wind":
+      a.capacity_factor = c.capacity_factor + (alt.capacity_factor_add || 0);
+      break;
+    case "pfc":
+      a.target_pf = alt.target_pf;
+      break;
+  }
+  const result = calcLoss(a);
+  const cost_mult = alt.cost_mult || 1;
+  const altUnitCost = (c.unit_cost || 0) * cost_mult;
+  const altInstallCost = (c.install_cost || 0) * cost_mult;
+  return { ...result, altUnitCost, altInstallCost };
+}
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let subsystems = [];
+let compIdCounter = 0;
+let lastAnalysis = null;
+
+/* ================================================================
+   UI: Subsystem Forms
+   ================================================================ */
+
+function addSubsystem(type, presetIdx) {
+  const id = ++compIdCounter;
+  const preset = PRESETS[type] && PRESETS[type][presetIdx || 0] ? { ...PRESETS[type][presetIdx || 0] } : {};
+  const comp = { id, type, name: preset.name || SUB_TYPES[type].label, ...preset };
+  subsystems.push(comp);
+  renderCompList();
+}
+
+function removeSubsystem(id) {
+  subsystems = subsystems.filter(c => c.id !== id);
+  renderCompList();
+}
+
+function renderCompList() {
+  const list = document.getElementById("comp-list");
+  const empty = document.getElementById("comp-empty");
+  if (subsystems.length === 0) {
+    list.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  let html = "";
+  subsystems.forEach(c => {
+    const fields = FIELD_DEFS[c.type] || [];
+    const presets = PRESETS[c.type] || [];
+    const typeInfo = SUB_TYPES[c.type];
+    const lossInfo = calcLoss(c);
+    const lossVal = lossInfo.loss_kw || 0;
+    const lossClass = lossVal < 1 ? "good" : lossVal > 50 ? "bad" : "";
+
+    html += `<div class="comp-card" data-id="${c.id}">`;
+    html += `<h4><span>${typeInfo.cat} — ${c.name}</span><button class="danger" onclick="removeSubsystem(${c.id})">Remove</button></h4>`;
+
+    if (presets.length > 0) {
+      html += `<div class="field" style="margin-bottom:.75rem"><label>Preset</label><select onchange="applyPreset(${c.id},this.value)">`;
+      presets.forEach((p, i) => {
+        const sel = p.name === c.name ? " selected" : "";
+        html += `<option value="${i}"${sel}>${p.name}</option>`;
+      });
+      html += `</select></div>`;
+    }
+
+    const cols = fields.length <= 3 ? "row-3" : fields.length <= 4 ? "row-4" : "row-3";
+    html += `<div class="row ${cols}">`;
+    fields.forEach(([key, label, unit]) => {
+      const val = c[key] !== undefined ? c[key] : "";
+      const unitStr = unit ? ` <span class="hint">(${unit})</span>` : "";
+      html += `<div class="field"><label>${label}${unitStr}</label>`;
+      html += `<input type="number" step="any" min="0" value="${val}" onchange="updateParam(${c.id},'${key}',this.value)" oninput="updateParam(${c.id},'${key}',this.value)"></div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="comp-loss ${lossClass}">`;
+    if (lossInfo.is_generation) {
+      html += `Annual generation: ${fmtEnergy(Math.abs(lossInfo.annual_kwh))}`;
+    } else if (lossInfo.is_gas) {
+      html += `Thermal loss: ${fmtPower(lossVal)} | Annual gas: ${fmtNum(lossInfo.annual_therms, 0)} therms`;
+    } else if (lossInfo.is_pfc) {
+      html += `kVAr saved: ${fmtNum(lossInfo.kvar_saved, 1)} | Annual penalty saved: ${fmtMoney(lossInfo.annual_penalty_saved)}`;
+    } else {
+      html += `Estimated loss: ${fmtPower(lossVal)} | Annual waste: ${fmtEnergy(lossInfo.annual_kwh)}`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+  });
+  list.innerHTML = html;
+}
+
+function applyPreset(id, idx) {
+  const comp = subsystems.find(c => c.id === id);
+  if (!comp) return;
+  const preset = PRESETS[comp.type][parseInt(idx)];
+  if (!preset) return;
+  Object.assign(comp, preset);
+  renderCompList();
+}
+
+function updateParam(id, key, val) {
+  const comp = subsystems.find(c => c.id === id);
+  if (!comp) return;
+  comp[key] = parseFloat(val) || 0;
+  const card = document.querySelector(`.comp-card[data-id="${id}"]`);
+  if (card) {
+    const lossEl = card.querySelector(".comp-loss");
+    const lossInfo = calcLoss(comp);
+    const lossVal = lossInfo.loss_kw || 0;
+    const lossClass = lossVal < 1 ? "good" : lossVal > 50 ? "bad" : "";
+    lossEl.className = `comp-loss ${lossClass}`;
+    let text = "";
+    if (lossInfo.is_generation) {
+      text = `Annual generation: ${fmtEnergy(Math.abs(lossInfo.annual_kwh))}`;
+    } else if (lossInfo.is_gas) {
+      text = `Thermal loss: ${fmtPower(lossVal)} | Annual gas: ${fmtNum(lossInfo.annual_therms, 0)} therms`;
+    } else if (lossInfo.is_pfc) {
+      text = `kVAr saved: ${fmtNum(lossInfo.kvar_saved, 1)} | Annual penalty saved: ${fmtMoney(lossInfo.annual_penalty_saved)}`;
+    } else {
+      text = `Estimated loss: ${fmtPower(lossVal)} | Annual waste: ${fmtEnergy(lossInfo.annual_kwh)}`;
+    }
+    lossEl.innerHTML = text;
+  }
+}
+
+/* ================================================================
+   FORMAT HELPERS — scale-aware
+   ================================================================ */
+function fmtPower(kw) {
+  if (kw === 0) return "0 W";
+  const a = Math.abs(kw);
+  if (a >= 1000) return (kw / 1000).toFixed(2) + " MW";
+  if (a >= 1) return kw.toFixed(2) + " kW";
+  return (kw * 1000).toFixed(1) + " W";
+}
+
+function fmtEnergy(kwh) {
+  if (kwh === 0) return "0 kWh";
+  const a = Math.abs(kwh);
+  if (a >= 1e6) return (kwh / 1e6).toFixed(2) + " GWh";
+  if (a >= 1e3) return (kwh / 1e3).toFixed(1) + " MWh";
+  return kwh.toFixed(0) + " kWh";
+}
+
+function fmtMoney(v) {
+  const a = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (a >= 1e6) return sign + "$" + (a / 1e6).toFixed(2) + "M";
+  if (a >= 1e4) return sign + "$" + (a / 1e3).toFixed(1) + "k";
+  return sign + "$" + a.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtMoneyFull(v) {
+  const a = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  return sign + "$" + a.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtNum(v, d) {
+  return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+/* ================================================================
+   DEMO FACILITY
+   ================================================================ */
+function loadDemo() {
+  subsystems = [];
+  compIdCounter = 0;
+  // Typical manufacturing plant
+  [
+    ["transformer", 0],   // 1000 kVA Oil-Filled
+    ["cable", 0],         // Main Feeder
+    ["motor", 0],         // 75kW IE2
+    ["motor", 2],         // 37kW IE1 old
+    ["pump", 0],          // Centrifugal 55kW
+    ["fan", 0],           // Centrifugal 30kW
+    ["chiller", 0],       // 500kWt Screw
+    ["lighting", 0],      // Warehouse HID
+    ["lighting", 1],      // Office Fluorescent
+    ["vfd", 0],           // VFD on 55kW pump
+    ["compressed-air", 0],// Rotary Screw 75kW
+    ["datacenter", 1],    // Small Data Closet
+    ["boiler", 1],        // Gas Boiler 1000 kWt
+    ["solar", 1],         // Carpark PV 100kWp
+    ["pfc", 0],           // PFC 800kW load
+  ].forEach(([type, pi]) => addSubsystem(type, pi));
+  renderCompList();
+}
+
+/* ================================================================
+   ANALYSIS ENGINE
+   ================================================================ */
+function analyzeFacility() {
+  if (subsystems.length === 0) return;
+
+  const hours = parseFloat(document.getElementById("fac-hours").value) || 6000;
+  const tariff = parseFloat(document.getElementById("fac-tariff").value) || 0.12;
+  const demandCharge = parseFloat(document.getElementById("fac-demand").value) || 12;
+  const gasPrice = parseFloat(document.getElementById("fac-gas").value) || 1.10;
+  const co2Factor = parseFloat(document.getElementById("fac-co2").value) || 0.42;
+  const discountRate = parseFloat(document.getElementById("fac-discount").value) / 100 || 0.08;
+  const period = parseInt(document.getElementById("fac-period").value) || 10;
+  const facilities = parseInt(document.getElementById("fac-facilities").value) || 1;
+
+  const results = subsystems.map(c => {
+    const cur = calcLoss(c);
+    const altResult = calcAltLoss(c);
+    const alt = GREEN_ALTS[c.type];
+    const typeInfo = SUB_TYPES[c.type];
+
+    // Current annual cost
+    let curAnnualCost = 0;
+    let altAnnualCost = 0;
+    let curAnnualKwh = cur.annual_kwh || 0;
+    let altAnnualKwh = altResult ? (altResult.annual_kwh || 0) : curAnnualKwh;
+
+    if (cur.is_gas) {
+      curAnnualCost = (cur.annual_therms || 0) * gasPrice;
+      const altTherms = altResult ? (altResult.annual_therms || 0) : (cur.annual_therms || 0);
+      altAnnualCost = altTherms * gasPrice;
+    } else if (cur.is_pfc) {
+      curAnnualCost = 0; // penalty is what we save
+      altAnnualCost = 0;
+    } else {
+      curAnnualCost = curAnnualKwh * tariff;
+      altAnnualCost = altAnnualKwh * tariff;
+    }
+
+    // Demand charge contribution (peak kW * $/kW/month * 12)
+    let curDemandCost = 0;
+    let altDemandCost = 0;
+    if (cur.is_electric && !cur.is_generation && !cur.is_pfc) {
+      const curPeakKw = cur.input_kw || cur.loss_kw || 0;
+      const qty = c.qty || 1;
+      curDemandCost = curPeakKw * qty * demandCharge * 12;
+      if (altResult) {
+        const altPeakKw = altResult.input_kw || altResult.loss_kw || 0;
+        altDemandCost = altPeakKw * qty * demandCharge * 12;
+      } else {
+        altDemandCost = curDemandCost;
+      }
+    }
+
+    // PFC savings
+    let pfcSaving = 0;
+    let altPfcSaving = 0;
+    if (cur.is_pfc) {
+      pfcSaving = cur.annual_penalty_saved || 0;
+      altPfcSaving = altResult ? (altResult.annual_penalty_saved || 0) : pfcSaving;
+    }
+
+    const curTotalCost = curAnnualCost + curDemandCost - pfcSaving;
+    const altTotalCost = altAnnualCost + altDemandCost - altPfcSaving;
+    const annualSaving = curTotalCost - altTotalCost;
+
+    // Upgrade cost
+    const curEquipCost = ((c.unit_cost || 0) + (c.install_cost || 0)) * (c.qty || 1);
+    const altEquipCost = altResult ? ((altResult.altUnitCost || 0) + (altResult.altInstallCost || 0)) * (c.qty || 1) : curEquipCost;
+    const upgradeCost = altEquipCost - curEquipCost;
+
+    return {
+      comp: c,
+      type: c.type,
+      cat: typeInfo.cat,
+      typeLabel: typeInfo.label,
+      name: c.name,
+      curLossKw: cur.loss_kw || 0,
+      altLossKw: altResult ? (altResult.loss_kw || 0) : (cur.loss_kw || 0),
+      curAnnualKwh,
+      altAnnualKwh,
+      curAnnualCost,
+      altAnnualCost,
+      curDemandCost,
+      altDemandCost,
+      curTotalCost,
+      altTotalCost,
+      annualSaving,
+      upgradeCost,
+      pfcSaving,
+      altPfcSaving,
+      altName: alt ? alt.name : "-",
+      altNote: alt ? alt.note : "",
+      isGas: !!cur.is_gas,
+      isGeneration: !!cur.is_generation,
+      isPfc: !!cur.is_pfc,
+    };
+  });
+
+  // Totals
+  const totalCurKwh = results.reduce((s, r) => s + r.curAnnualKwh, 0);
+  const totalAltKwh = results.reduce((s, r) => s + r.altAnnualKwh, 0);
+  const totalCurCost = results.reduce((s, r) => s + r.curTotalCost, 0);
+  const totalAltCost = results.reduce((s, r) => s + r.altTotalCost, 0);
+  const totalAnnualSaving = totalCurCost - totalAltCost;
+  const totalUpgradeCost = results.reduce((s, r) => s + Math.max(r.upgradeCost, 0), 0);
+  const payback = totalAnnualSaving > 0 ? totalUpgradeCost / totalAnnualSaving : Infinity;
+
+  // NPV
+  let npv = -totalUpgradeCost;
+  for (let t = 1; t <= period; t++) {
+    npv += totalAnnualSaving / Math.pow(1 + discountRate, t);
+  }
+
+  // CO2
+  const co2Cur = results.filter(r => !r.isGas).reduce((s, r) => s + r.curAnnualKwh, 0) * co2Factor / 1000; // tonnes
+  const co2Alt = results.filter(r => !r.isGas).reduce((s, r) => s + r.altAnnualKwh, 0) * co2Factor / 1000;
+  const co2Saved = co2Cur - co2Alt;
+
+  // 5-year and 10-year net savings
+  let net5 = -totalUpgradeCost, net10 = -totalUpgradeCost;
+  for (let t = 1; t <= 10; t++) {
+    const pv = totalAnnualSaving / Math.pow(1 + discountRate, t);
+    if (t <= 5) net5 += pv;
+    net10 += pv;
+  }
+
+  // Scale by facilities
+  const fac = facilities;
+
+  lastAnalysis = {
+    results, totalCurKwh: totalCurKwh * fac, totalAltKwh: totalAltKwh * fac,
+    totalCurCost: totalCurCost * fac, totalAltCost: totalAltCost * fac,
+    totalAnnualSaving: totalAnnualSaving * fac,
+    totalUpgradeCost: totalUpgradeCost * fac,
+    payback, npv: npv * fac,
+    co2Cur: co2Cur * fac, co2Alt: co2Alt * fac, co2Saved: co2Saved * fac,
+    net5: net5 * fac, net10: net10 * fac,
+    tariff, demandCharge, gasPrice, co2Factor, discountRate, period, facilities,
+  };
+
+  renderAnalysis(lastAnalysis);
+}
+
+/* ================================================================
+   RENDER RESULTS
+   ================================================================ */
+
+function renderAnalysis(a) {
+  // Summary
+  let h = `<h2>Efficiency Summary</h2>`;
+  h += `<div class="savings-grid">`;
+  h += `<div class="highlight" style="background:var(--primary-light);color:#1e40af">Current Annual Energy Cost<br><strong>${fmtMoneyFull(a.totalCurCost)}</strong><br><span style="font-size:.85rem;font-weight:400">${fmtEnergy(a.totalCurKwh)} electrical</span></div>`;
+  h += `<div class="highlight" style="background:var(--success-light);color:#166534">Optimised Annual Energy Cost<br><strong>${fmtMoneyFull(a.totalAltCost)}</strong><br><span style="font-size:.85rem;font-weight:400">${fmtEnergy(a.totalAltKwh)} electrical</span></div>`;
+  h += `<div class="highlight" style="background:var(--warning-light);color:#854d0e">Annual Saving<br><strong>${fmtMoneyFull(a.totalAnnualSaving)}</strong><br><span style="font-size:.85rem;font-weight:400">${a.totalCurCost > 0 ? ((a.totalAnnualSaving / a.totalCurCost) * 100).toFixed(1) : 0}% reduction</span></div>`;
+  h += `<div class="highlight" style="background:#f0fdf4;color:#166534">CO2 Reduction<br><strong>${fmtNum(a.co2Saved, 1)} tonnes/yr</strong><br><span style="font-size:.85rem;font-weight:400">@ ${a.co2Factor} kgCO2/kWh</span></div>`;
+  h += `</div>`;
+  if (a.facilities > 1) h += `<div class="analysis">All figures scaled for <strong>${a.facilities} facilities</strong>.</div>`;
+  document.getElementById("res-summary").innerHTML = h;
+
+  // Loss breakdown table
+  let b = `<h2>Loss Breakdown by Subsystem</h2>`;
+  b += `<table><thead><tr><th>Subsystem</th><th>Category</th><th>Current Loss</th><th>Annual Energy</th><th>Annual Cost</th><th>Alt. Loss</th><th>Saving</th></tr></thead><tbody>`;
+  const sorted = [...a.results].sort((x, y) => Math.abs(y.curTotalCost) - Math.abs(x.curTotalCost));
+  sorted.forEach(r => {
+    const saving = r.annualSaving;
+    const savPct = r.curTotalCost !== 0 ? ((saving / Math.abs(r.curTotalCost)) * 100).toFixed(0) : "0";
+    b += `<tr>`;
+    b += `<td>${r.name}</td>`;
+    b += `<td>${r.cat}</td>`;
+    b += `<td>${r.isGeneration ? "Generation" : r.isPfc ? "PFC" : fmtPower(r.curLossKw)}</td>`;
+    b += `<td>${r.isGas ? "Gas" : r.isPfc ? "-" : fmtEnergy(r.curAnnualKwh)}</td>`;
+    b += `<td>${fmtMoneyFull(r.curTotalCost)}</td>`;
+    b += `<td>${r.isGeneration ? "Generation" : r.isPfc ? "PFC" : fmtPower(r.altLossKw)}</td>`;
+    b += `<td>${fmtMoneyFull(saving)} (${savPct}%)</td>`;
+    b += `</tr>`;
+  });
+  b += `</tbody></table>`;
+  b += `<div class="stat"><span class="stat-label">Total current annual cost</span><span class="stat-value">${fmtMoneyFull(a.totalCurCost)}</span></div>`;
+  b += `<div class="stat"><span class="stat-label">Total optimised annual cost</span><span class="stat-value">${fmtMoneyFull(a.totalAltCost)}</span></div>`;
+  b += `<div class="stat"><span class="stat-label">Total annual saving</span><span class="stat-value">${fmtMoneyFull(a.totalAnnualSaving)}</span></div>`;
+  document.getElementById("res-breakdown").innerHTML = b;
+
+  // Green alternatives table
+  let g = `<h2>Green Alternative Recommendations</h2>`;
+  g += `<table><thead><tr><th>Current Subsystem</th><th>Suggested Alternative</th><th>Annual Saving</th><th>Upgrade Cost</th><th>Sub-Payback</th><th>Notes</th></tr></thead><tbody>`;
+  a.results.forEach(r => {
+    const subPayback = r.annualSaving > 0 && r.upgradeCost > 0 ? (r.upgradeCost / r.annualSaving).toFixed(1) + " yr" : r.annualSaving > 0 ? "Immediate" : "-";
+    g += `<tr><td>${r.name}</td><td>${r.altName}</td><td>${fmtMoneyFull(r.annualSaving)}</td><td>${fmtMoneyFull(Math.max(r.upgradeCost, 0))}</td><td>${subPayback}</td><td style="font-size:.8rem;color:var(--muted)">${r.altNote}</td></tr>`;
+  });
+  g += `</tbody></table>`;
+  document.getElementById("res-alts").innerHTML = g;
+
+  // Cost / financial analysis
+  let c = `<h2>Financial Analysis</h2>`;
+  c += `<div class="savings-grid">`;
+  c += `<div class="highlight" style="background:var(--primary-light);color:#1e40af">Simple Payback<br><strong>${a.payback === Infinity ? "N/A" : a.payback < 0 ? "Immediate" : a.payback.toFixed(1) + " years"}</strong><br><span style="font-size:.85rem;font-weight:400">Upgrade cost: ${fmtMoneyFull(a.totalUpgradeCost)}</span></div>`;
+  c += `<div class="highlight" style="background:var(--success-light);color:#166534">NPV (${a.period} yr @ ${(a.discountRate * 100).toFixed(0)}%)<br><strong>${fmtMoneyFull(a.npv)}</strong><br><span style="font-size:.85rem;font-weight:400">${a.npv > 0 ? "Positive — investment worthwhile" : "Negative — review assumptions"}</span></div>`;
+  c += `<div class="highlight" style="background:var(--warning-light);color:#854d0e">5-Year Net Saving<br><strong>${fmtMoneyFull(a.net5)}</strong><br><span style="font-size:.85rem;font-weight:400">Discounted at ${(a.discountRate * 100).toFixed(0)}%</span></div>`;
+  c += `<div class="highlight" style="background:#f0fdf4;color:#166534">10-Year Net Saving<br><strong>${fmtMoneyFull(a.net10)}</strong><br><span style="font-size:.85rem;font-weight:400">Discounted at ${(a.discountRate * 100).toFixed(0)}%</span></div>`;
+  c += `</div>`;
+  document.getElementById("res-cost").innerHTML = c;
+
+  // Priority recommendations
+  let p = `<h2>Upgrade Priority Recommendations</h2>`;
+  const prioritised = [...a.results].filter(r => r.annualSaving > 0).sort((x, y) => {
+    // Sort by payback (lower is better), then by saving (higher is better)
+    const pa = x.upgradeCost > 0 ? x.upgradeCost / x.annualSaving : 0;
+    const pb = y.upgradeCost > 0 ? y.upgradeCost / y.annualSaving : 0;
+    return pa - pb;
+  });
+  if (prioritised.length > 0) {
+    p += `<div class="analysis good"><strong>Recommended upgrade order (fastest payback first):</strong><br>`;
+    prioritised.forEach((r, i) => {
+      const subPayback = r.upgradeCost > 0 ? (r.upgradeCost / r.annualSaving).toFixed(1) + " yr" : "Immediate";
+      p += `${i + 1}. <strong>${r.name}</strong> &rarr; ${r.altName}: saves ${fmtMoneyFull(r.annualSaving)}/yr, payback ${subPayback}<br>`;
+    });
+    p += `</div>`;
+  } else {
+    p += `<div class="analysis">No significant savings identified. Your facility is already well optimised.</div>`;
+  }
+  document.getElementById("res-priority").innerHTML = p;
+
+  // Charts
+  renderCharts(a);
+
+  document.getElementById("results").classList.add("visible");
+  document.getElementById("res-summary").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ================================================================
+   CHARTS (Canvas 2D)
+   ================================================================ */
+
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function niceScale(min, max, ticks) {
+  if (max <= min) max = min + 1;
+  const range = max - min;
+  const exp = Math.floor(Math.log10(range));
+  const frac = range / Math.pow(10, exp);
+  let step;
+  if (frac <= 1.5) step = 0.2; else if (frac <= 3) step = 0.5; else if (frac <= 7) step = 1; else step = 2;
+  step *= Math.pow(10, exp);
+  const nMin = Math.floor(min / step) * step;
+  const nMax = Math.ceil(max / step) * step;
+  const arr = [];
+  for (let v = nMin; v <= nMax + step * 0.1; v += step) arr.push(parseFloat(v.toPrecision(10)));
+  return { min: nMin, max: nMax, ticks: arr };
+}
+
+function fmtChartVal(v) {
+  const a = Math.abs(v);
+  if (a === 0) return "0";
+  if (a >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (a >= 1e3) return (v / 1e3).toFixed(1) + "k";
+  if (a >= 1) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+function renderCharts(a) {
+  let html = `<h2>Charts</h2><div class="chart-grid">`;
+  html += `<div class="chart-container"><div class="chart-title">Annual Energy Cost: Current vs Optimised</div><div class="chart-subtitle">Side-by-side comparison per subsystem ($)</div><canvas id="ch-energy" width="900" height="420"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Savings Potential Ranked</div><div class="chart-subtitle">Annual savings by subsystem ($)</div><canvas id="ch-saving" width="900" height="400"></canvas></div>`;
+  html += `<div class="chart-container"><div class="chart-title">Total Annual Cost Comparison</div><div class="chart-subtitle">Facility-wide current vs optimised annual cost</div><canvas id="ch-total" width="900" height="350"></canvas></div>`;
+  html += `</div>`;
+  document.getElementById("res-charts").innerHTML = html;
+
+  requestAnimationFrame(() => {
+    drawComparisonBars("ch-energy", a);
+    drawSavingsBars("ch-saving", a);
+    drawTotalComparison("ch-total", a);
+  });
+}
+
+function drawComparisonBars(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 100, left: 90 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+  const data = a.results.filter(r => !r.isGeneration && !r.isPfc);
+  const n = data.length;
+  if (n === 0) return;
+  const groupW = pW / n;
+  const barW = groupW * 0.35;
+
+  const maxVal = Math.max(...data.map(r => Math.max(Math.abs(r.curTotalCost), Math.abs(r.altTotalCost)))) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText("$" + fmtChartVal(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  data.forEach((r, i) => {
+    const gx = pad.left + i * groupW;
+    const ch = ((Math.abs(r.curTotalCost) - scale.min) / (scale.max - scale.min)) * pH;
+    const cy = pad.top + pH - ch;
+    ctx.fillStyle = "rgba(239,68,68,.7)";
+    ctx.beginPath(); ctx.roundRect(gx + 2, cy, barW, ch, [4,4,0,0]); ctx.fill();
+
+    const ah = ((Math.abs(r.altTotalCost) - scale.min) / (scale.max - scale.min)) * pH;
+    const ay = pad.top + pH - ah;
+    ctx.fillStyle = "rgba(22,163,74,.7)";
+    ctx.beginPath(); ctx.roundRect(gx + barW + 4, ay, barW, ah, [4,4,0,0]); ctx.fill();
+
+    ctx.fillStyle = "#1e293b"; ctx.font = "bold 9px -apple-system, sans-serif"; ctx.textAlign = "center";
+    if (ch > 15) ctx.fillText("$" + fmtChartVal(Math.abs(r.curTotalCost)), gx + 2 + barW / 2, cy - 5);
+    if (ah > 15) ctx.fillText("$" + fmtChartVal(Math.abs(r.altTotalCost)), gx + barW + 4 + barW / 2, ay - 5);
+
+    ctx.fillStyle = "#64748b"; ctx.font = "10px -apple-system, sans-serif";
+    ctx.save();
+    ctx.translate(gx + groupW / 2, pad.top + pH + 10);
+    ctx.rotate(-Math.PI / 5);
+    ctx.textAlign = "right";
+    const shortName = r.name.length > 22 ? r.name.substring(0, 20) + "..." : r.name;
+    ctx.fillText(shortName, 0, 0);
+    ctx.restore();
+  });
+
+  // Legend
+  ctx.fillStyle = "rgba(239,68,68,.7)";
+  ctx.fillRect(pad.left, pad.top - 18, 12, 12);
+  ctx.fillStyle = "#334155"; ctx.font = "bold 12px -apple-system, sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("Current", pad.left + 16, pad.top - 8);
+  ctx.fillStyle = "rgba(22,163,74,.7)";
+  ctx.fillRect(pad.left + 90, pad.top - 18, 12, 12);
+  ctx.fillStyle = "#334155";
+  ctx.fillText("Optimised", pad.left + 106, pad.top - 8);
+
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Annual Cost ($)", 0, 0); ctx.restore();
+}
+
+function drawSavingsBars(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 100, left: 90 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+  const sorted = [...a.results].filter(r => r.annualSaving > 0).sort((x, y) => y.annualSaving - x.annualSaving);
+  const n = sorted.length;
+  if (n === 0) {
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#94a3b8"; ctx.font = "14px -apple-system, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("No savings opportunities identified", w / 2, h / 2);
+    return;
+  }
+  const gap = pW / n;
+  const barW = gap * 0.6;
+
+  const maxVal = Math.max(...sorted.map(r => r.annualSaving), 1) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText("$" + fmtChartVal(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  sorted.forEach((r, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const bh = ((r.annualSaving - scale.min) / (scale.max - scale.min)) * pH;
+    const y = pad.top + pH - bh;
+
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + pH);
+    grad.addColorStop(0, "#16a34a"); grad.addColorStop(1, "rgba(22,163,74,.15)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [5,5,0,0]); ctx.fill();
+    ctx.strokeStyle = "#16a34a"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [5,5,0,0]); ctx.stroke();
+
+    if (bh > 15) {
+      ctx.fillStyle = "#1e293b"; ctx.font = "bold 10px -apple-system, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("$" + fmtChartVal(r.annualSaving), x + barW / 2, y - 6);
+    }
+
+    ctx.fillStyle = "#64748b"; ctx.font = "10px -apple-system, sans-serif";
+    ctx.save(); ctx.translate(x + barW / 2, pad.top + pH + 10); ctx.rotate(-Math.PI / 5); ctx.textAlign = "right";
+    const sn = r.name.length > 22 ? r.name.substring(0, 20) + "..." : r.name;
+    ctx.fillText(sn, 0, 0); ctx.restore();
+  });
+
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Annual Saving ($)", 0, 0); ctx.restore();
+}
+
+function drawTotalComparison(id, a) {
+  const { ctx, w, h } = getCtx(id);
+  const pad = { top: 40, right: 30, bottom: 50, left: 90 };
+  const pW = w - pad.left - pad.right;
+  const pH = h - pad.top - pad.bottom;
+
+  const bars = [
+    { label: "Current Annual", value: a.totalCurCost, color: "#64748b", light: "rgba(100,116,139,.15)" },
+    { label: "Optimised Annual", value: a.totalAltCost, color: "#16a34a", light: "rgba(22,163,74,.15)" },
+  ];
+  const maxVal = Math.max(...bars.map(b => Math.abs(b.value)), 1) * 1.2;
+  const scale = niceScale(0, maxVal, 6);
+  const gap = pW / bars.length;
+  const barW = gap * 0.4;
+
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+
+  scale.ticks.forEach(t => {
+    const y = pad.top + pH - ((t - scale.min) / (scale.max - scale.min)) * pH;
+    ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.font = "12px -apple-system, sans-serif"; ctx.textAlign = "right";
+    ctx.fillText("$" + fmtChartVal(t), pad.left - 10, y + 4);
+  });
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top + pH); ctx.lineTo(pad.left + pW, pad.top + pH); ctx.stroke();
+
+  bars.forEach((b, i) => {
+    const x = pad.left + i * gap + (gap - barW) / 2;
+    const bh = ((Math.abs(b.value) - scale.min) / (scale.max - scale.min)) * pH;
+    const y = pad.top + pH - bh;
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + pH);
+    grad.addColorStop(0, b.color); grad.addColorStop(1, b.light);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [6,6,0,0]); ctx.fill();
+    ctx.strokeStyle = b.color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [6,6,0,0]); ctx.stroke();
+
+    ctx.fillStyle = "#1e293b"; ctx.font = "bold 14px -apple-system, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("$" + fmtChartVal(Math.abs(b.value)), x + barW / 2, y - 10);
+    ctx.fillStyle = b.color; ctx.font = "bold 13px -apple-system, sans-serif";
+    ctx.fillText(b.label, x + barW / 2, pad.top + pH + 22);
+  });
+
+  if (a.totalAnnualSaving > 0) {
+    const savPct = a.totalCurCost > 0 ? ((a.totalAnnualSaving / a.totalCurCost) * 100).toFixed(1) : "0";
+    ctx.fillStyle = "#16a34a"; ctx.font = "bold 14px -apple-system, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(`Save ${fmtMoney(a.totalAnnualSaving)}/yr (${savPct}%)`, pad.left + pW / 2, pad.top - 8);
+  }
+
+  ctx.save(); ctx.translate(16, pad.top + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#64748b"; ctx.font = "bold 13px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Annual Cost ($)", 0, 0); ctx.restore();
+}
+
+/* ================================================================
+   CSV EXPORT
+   ================================================================ */
+function downloadCSV() {
+  if (!lastAnalysis) return;
+  const a = lastAnalysis;
+  const rows = [];
+  rows.push(["Industrial Facility Efficiency Analysis Report"]);
+  rows.push([]);
+  rows.push(["Facility Settings"]);
+  rows.push(["Tariff ($/kWh)", a.tariff]);
+  rows.push(["Demand Charge ($/kW/mo)", a.demandCharge]);
+  rows.push(["Gas Price ($/therm)", a.gasPrice]);
+  rows.push(["Carbon Intensity (kgCO2/kWh)", a.co2Factor]);
+  rows.push(["Discount Rate", (a.discountRate * 100) + "%"]);
+  rows.push(["Analysis Period (yr)", a.period]);
+  rows.push(["Facilities", a.facilities]);
+  rows.push([]);
+  rows.push(["Subsystem Breakdown"]);
+  rows.push(["Subsystem","Category","Current Loss (kW)","Current Annual kWh","Current Annual Cost ($)","Alt Loss (kW)","Alt Annual kWh","Alt Annual Cost ($)","Annual Saving ($)","Upgrade Cost ($)","Payback (yr)","Alternative","Notes"]);
+  a.results.forEach(r => {
+    const pb = r.annualSaving > 0 && r.upgradeCost > 0 ? (r.upgradeCost / r.annualSaving).toFixed(2) : r.annualSaving > 0 ? "0" : "N/A";
+    rows.push([
+      r.name, r.cat,
+      r.curLossKw.toFixed(2), r.curAnnualKwh.toFixed(0), r.curTotalCost.toFixed(2),
+      r.altLossKw.toFixed(2), r.altAnnualKwh.toFixed(0), r.altTotalCost.toFixed(2),
+      r.annualSaving.toFixed(2), Math.max(r.upgradeCost, 0).toFixed(2), pb,
+      r.altName, r.altNote
+    ]);
+  });
+  rows.push([]);
+  rows.push(["Summary"]);
+  rows.push(["Total Current Annual Cost ($)", a.totalCurCost.toFixed(2)]);
+  rows.push(["Total Optimised Annual Cost ($)", a.totalAltCost.toFixed(2)]);
+  rows.push(["Total Annual Saving ($)", a.totalAnnualSaving.toFixed(2)]);
+  rows.push(["Total Upgrade Cost ($)", a.totalUpgradeCost.toFixed(2)]);
+  rows.push(["Simple Payback (yr)", a.payback === Infinity ? "N/A" : a.payback.toFixed(2)]);
+  rows.push(["NPV ($)", a.npv.toFixed(2)]);
+  rows.push(["5-Year Net Saving ($)", a.net5.toFixed(2)]);
+  rows.push(["10-Year Net Saving ($)", a.net10.toFixed(2)]);
+  rows.push(["CO2 Current (t/yr)", a.co2Cur.toFixed(2)]);
+  rows.push(["CO2 Optimised (t/yr)", a.co2Alt.toFixed(2)]);
+  rows.push(["CO2 Saved (t/yr)", a.co2Saved.toFixed(2)]);
+
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v);
+    return s.includes(",") || s.includes('"') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "industrial_efficiency_report.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+(function init() {
+  // Populate type selector
+  const sel = document.getElementById("sub-type");
+  let lastCat = "";
+  Object.entries(SUB_TYPES).forEach(([key, val]) => {
+    if (val.cat !== lastCat) {
+      if (lastCat) {
+        const sep = document.createElement("option");
+        sep.disabled = true;
+        sep.textContent = "──────────";
+        sel.appendChild(sep);
+      }
+      lastCat = val.cat;
+    }
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val.cat + " — " + val.label;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById("btn-add").addEventListener("click", () => {
+    addSubsystem(sel.value, 0);
+  });
+
+  document.getElementById("btn-demo").addEventListener("click", loadDemo);
+  document.getElementById("btn-analyze").addEventListener("click", analyzeFacility);
+  document.getElementById("btn-csv").addEventListener("click", downloadCSV);
+})();
+</script>
+</body>
+</html>
