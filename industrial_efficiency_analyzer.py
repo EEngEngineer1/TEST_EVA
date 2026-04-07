@@ -549,23 +549,135 @@ def collect_params(cat_id):
 #  DEMO FACILITY
 # =============================================================================
 
-def build_demo():
-    """Return a list of subsystems representing a typical industrial facility."""
+DEMO_SCENARIOS = {
+    "1": {
+        "name": "Steel Mill / Heavy Manufacturing",
+        "settings": {"hours": 7200, "tariff": 0.09, "demand": 18, "gas": 1.05, "carbon": 0.45},
+        "items": [
+            (1, 1), (1, 0),               # 2000 kVA + 1000 kVA transformers
+            (2, 2), (2, 0), (2, 0), (2, 1),# 200kW, 75kW×2, 15kW IE1 motors
+            (3, 0), (3, 0),               # Centrifugal 55kW×2 — cooling, hydraulic
+            (4, 0),                        # Screw chiller 200kWt — process cooling
+            (5, 0), (5, 1),               # HID warehouse, fluorescent offices
+            (6, 0), (6, 1),               # Rotary screw 75kW, reciprocating 22kW
+            (7, 0),                        # Server room 50kW — SCADA
+            (8, 0),                        # VFD on 75kW pump
+            (9, 0), (9, 1),               # Gas boiler 1000kWt + 500kWt
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "2": {
+        "name": "Automotive Assembly Plant",
+        "settings": {"hours": 5600, "tariff": 0.11, "demand": 15, "gas": 1.10, "carbon": 0.42},
+        "items": [
+            (1, 1), (1, 0),               # 2000 kVA main + 1000 kVA body shop
+            (2, 2), (2, 0), (2, 1),       # 200kW paint fans, 75kW conveyor, 15kW IE1 old
+            (3, 0), (3, 1),               # 55kW coolant, 30kW submersible wash
+            (4, 0),                        # Screw chiller 200kWt — process
+            (5, 0), (5, 1),               # HID plant floor, fluorescent offices
+            (6, 0), (6, 1),               # 75kW assembly tools, 22kW instruments
+            (7, 0),                        # Server room — MES
+            (8, 0), (8, 1),               # VFD on pump, VFD on fan
+            (9, 0),                        # Gas boiler 1000kWt — paint ovens
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "3": {
+        "name": "Pharmaceutical / Clean Room Facility",
+        "settings": {"hours": 8000, "tariff": 0.14, "demand": 14, "gas": 1.15, "carbon": 0.38},
+        "items": [
+            (1, 0), (1, 2),               # 1000 kVA main, 500 kVA clean room
+            (2, 0), (2, 1),               # 75kW HVAC, 15kW IE1 old mixers
+            (3, 0), (3, 1),               # 55kW chilled water, 30kW submersible
+            (4, 0), (4, 1),               # Screw 200kWt, air-cooled 150kWt
+            (5, 1), (5, 1),               # Fluorescent clean rooms, fluorescent packaging
+            (6, 0),                        # 75kW clean air compressor
+            (7, 0),                        # Server room — GxP systems
+            (8, 0), (8, 1),               # VFD on pump, VFD on fan
+            (9, 1),                        # Gas boiler 500kWt — sterilisation steam
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "4": {
+        "name": "Data Centre (Colocation)",
+        "settings": {"hours": 8760, "tariff": 0.10, "demand": 20, "gas": 1.10, "carbon": 0.40},
+        "items": [
+            (1, 1), (1, 1), (1, 0),       # 2000 kVA A-feed, B-feed, 1000 kVA mech
+            (7, 1), (7, 0), (7, 0),       # 200kW Hall A, 50kW Hall B, 50kW Hall C
+            (4, 0), (4, 1),               # Screw 200kWt, air-cooled 150kWt
+            (3, 0), (3, 1),               # 55kW chilled water, 30kW condenser
+            (5, 1), (5, 1),               # Fluorescent server halls, fluorescent offices
+            (8, 0), (8, 1),               # VFD on pump, VFD on fans
+            (10, 1),                       # Ground-mount PV 500kWp
+        ]
+    },
+    "5": {
+        "name": "Commercial Office Building",
+        "settings": {"hours": 3000, "tariff": 0.15, "demand": 10, "gas": 1.20, "carbon": 0.35},
+        "items": [
+            (1, 2),                        # 500 kVA transformer
+            (2, 1),                        # 15kW IE1 — old AHU motors
+            (3, 1), (3, 1),               # 30kW HVAC circ, 30kW DHW
+            (4, 1),                        # 150kWt air-cooled chiller
+            (5, 1), (5, 1),               # Fluorescent offices, fluorescent lobbies
+            (7, 0),                        # Server room 50kW
+            (8, 1),                        # VFD on AHU fan
+            (9, 1),                        # Gas boiler 500kWt — heating
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "6": {
+        "name": "Water Treatment Works",
+        "settings": {"hours": 8760, "tariff": 0.10, "demand": 16, "gas": 1.05, "carbon": 0.42},
+        "items": [
+            (1, 0), (1, 2),               # 1000 kVA, 500 kVA
+            (2, 0), (2, 0), (2, 1), (2, 1), # 75kW blower, 75kW intake, 15kW scrapers×2
+            (3, 0), (3, 0), (3, 0), (3, 1), # 55kW high-lift, 55kW backwash, 55kW dosing, 30kW site
+            (6, 0),                        # 75kW process air
+            (5, 0), (5, 1),               # HID outdoor, fluorescent control bldg
+            (8, 0), (8, 0), (8, 1),       # VFD on pump×2, VFD on fan
+            (7, 0),                        # Server room — SCADA
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "7": {
+        "name": "Food & Beverage Processing",
+        "settings": {"hours": 5000, "tariff": 0.12, "demand": 14, "gas": 1.10, "carbon": 0.42},
+        "items": [
+            (1, 0),                        # 1000 kVA
+            (2, 0), (2, 1), (2, 1),       # 75kW mixing, 15kW IE1 conveyors×2
+            (3, 0), (3, 1),               # 55kW CIP, 30kW product transfer
+            (4, 0), (4, 1),               # Screw 200kWt cooling, air-cooled 150kWt glycol
+            (5, 0), (5, 1),               # HID warehouse, fluorescent hall
+            (6, 0),                        # 75kW packaging line air
+            (8, 0), (8, 1),               # VFD on pump, fan
+            (9, 0), (9, 1),               # 1000kWt steam, 500kWt CIP hot water
+            (7, 0),                        # Server room — MES
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+    "8": {
+        "name": "Cold Storage / Distribution Warehouse",
+        "settings": {"hours": 8760, "tariff": 0.11, "demand": 12, "gas": 1.10, "carbon": 0.42},
+        "items": [
+            (1, 2),                        # 500 kVA
+            (2, 1), (2, 1),               # 15kW IE1 conveyors, 15kW dock doors
+            (4, 1),                        # 150kWt air-cooled — offices
+            (5, 0), (5, 1),               # HID main warehouse, fluorescent offices
+            (6, 0),                        # 75kW ammonia refrigeration
+            (8, 0), (8, 1),               # VFD on compressor, VFD on fans
+            (7, 0),                        # Server room — WMS
+            (10, 0),                       # Rooftop PV 100kWp
+        ]
+    },
+}
+
+
+def build_demo(scenario_key):
+    """Return a list of subsystems for the given scenario key."""
+    scenario = DEMO_SCENARIOS[scenario_key]
     subs = []
-    demo_items = [
-        (1, 0),  # Transformer: first preset
-        (2, 0),  # Motor: first preset
-        (2, 1),  # Motor: second preset
-        (3, 0),  # Pump
-        (4, 0),  # Chiller
-        (5, 0),  # Lighting: metal halide
-        (5, 1),  # Lighting: fluorescent
-        (6, 0),  # Compressed air
-        (7, 0),  # Data centre
-        (9, 0),  # Gas boiler
-        (10, 0), # Solar PV
-    ]
-    for cat_id, preset_idx in demo_items:
+    for cat_id, preset_idx in scenario["items"]:
         label, params, cost = PRESETS[cat_id][preset_idx]
         total_cost = cost * params.get("qty", 1)
         subs.append({
@@ -574,7 +686,7 @@ def build_demo():
             "params": dict(params),
             "upgrade_cost": total_cost,
         })
-    return subs
+    return subs, scenario
 
 
 # =============================================================================
@@ -892,7 +1004,7 @@ def main():
         for num, name in CATEGORY_NAMES.items():
             print(f"    [{num:>2}] {name}")
         print()
-        print(f"  [D]  Load demo facility ({len(build_demo())} subsystems)")
+        print(f"  [D]  Load industry example scenario")
         print(f"  [A]  Analyse facility ({len(subsystems)} subsystems loaded)")
         print(f"  [L]  List current subsystems")
         print(f"  [R]  Remove a subsystem")
@@ -904,10 +1016,26 @@ def main():
             print("\n  Goodbye.")
             break
         elif choice == "D":
-            subsystems = build_demo()
-            print(f"\n  Demo facility loaded with {len(subsystems)} subsystems:")
-            for s in subsystems:
-                print(f"    - {CATEGORY_NAMES[s['cat_id']]}: {s['label']}")
+            print(f"\n  {'='*60}")
+            print("   INDUSTRY EXAMPLE SCENARIOS")
+            print(f"  {'='*60}")
+            for key, sc in DEMO_SCENARIOS.items():
+                print(f"    [{key}] {sc['name']}")
+            demo_choice = input("\n  Select scenario: ").strip()
+            if demo_choice in DEMO_SCENARIOS:
+                subsystems, scenario = build_demo(demo_choice)
+                # Apply scenario settings
+                s = scenario["settings"]
+                facility_settings["tariff"] = s.get("tariff", facility_settings["tariff"])
+                facility_settings["demand_charge"] = s.get("demand", facility_settings["demand_charge"])
+                facility_settings["carbon_intensity"] = s.get("carbon", facility_settings["carbon_intensity"])
+                print(f"\n  Loaded: {scenario['name']}")
+                print(f"  {len(subsystems)} subsystems | ${s.get('tariff',0.12)}/kWh | ${s.get('demand',15)}/kW/mo")
+                print(f"  Subsystems:")
+                for sub in subsystems:
+                    print(f"    - {CATEGORY_NAMES[sub['cat_id']]}: {sub['label']}")
+            else:
+                print("  Invalid selection.")
         elif choice == "A":
             analyse(facility_settings, subsystems)
         elif choice == "L":

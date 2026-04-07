@@ -135,7 +135,21 @@ footer{text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;borde
         <select id="sub-type"></select>
       </div>
       <button class="primary" id="btn-add" type="button" style="height:2.5rem">+ Add Subsystem</button>
-      <button class="secondary" id="btn-demo" type="button" style="height:2.5rem">Load Demo Facility</button>
+      <div class="field" style="min-width:220px">
+        <label for="demo-select">Load Industry Example</label>
+        <select id="demo-select">
+          <option value="">— Select a scenario —</option>
+          <option value="steel">Steel Mill / Heavy Manufacturing</option>
+          <option value="auto">Automotive Assembly Plant</option>
+          <option value="pharma">Pharmaceutical / Clean Room Facility</option>
+          <option value="datacentre">Data Centre (Colocation)</option>
+          <option value="office">Commercial Office Building</option>
+          <option value="water">Water Treatment Works</option>
+          <option value="food">Food &amp; Beverage Processing</option>
+          <option value="warehouse">Cold Storage / Distribution Warehouse</option>
+        </select>
+      </div>
+      <button class="secondary" id="btn-demo" type="button" style="height:2.5rem">Load Selected Example</button>
     </div>
     <div id="comp-list"></div>
     <div id="comp-empty" class="empty-msg">No subsystems added yet. Select a type above and click "Add Subsystem".</div>
@@ -734,28 +748,281 @@ function fmtNum(v, d) {
 /* ================================================================
    DEMO FACILITY
    ================================================================ */
+const DEMO_SCENARIOS = {
+  "steel": {
+    label: "Steel Mill / Heavy Manufacturing",
+    settings: { hours: 7200, tariff: 0.09, demand: 18, gas: 1.05, co2: 0.45, discount: 8, period: 15, facilities: 1 },
+    subs: [
+      ["transformer", 1],   // 2500 kVA Dry-Type
+      ["transformer", 0],   // 1000 kVA Oil-Filled
+      ["cable", 0],         // Main Feeder 400A
+      ["cable", 2],         // Motor Feeders 100A
+      ["switchgear", 0],    // LV Switchboard 3200A
+      ["motor", 1],         // 200kW IE2 — rolling mill drives
+      ["motor", 0],         // 75kW IE2 — conveyor drives
+      ["motor", 2],         // 37kW IE1 old — aux drives
+      ["pump", 2],          // Process Pump 110kW — cooling circuit
+      ["pump", 0],          // Centrifugal 55kW — hydraulic system
+      ["fan", 1],           // Axial Fan 15kW — fume extraction
+      ["fan", 0],           // Centrifugal 30kW — furnace draft
+      ["compressor-m", 0],  // Screw Compressor 90kW — pneumatics
+      ["furnace", 0],       // Arc Furnace 2000kW
+      ["furnace", 1],       // Resistance Furnace 500kW — reheat
+      ["chiller", 0],       // 500kWt Screw — process cooling
+      ["compressed-air", 0],// Rotary Screw 75kW
+      ["compressed-air", 2],// Small Reciprocating 22kW — instruments
+      ["lighting", 0],      // Warehouse HID 400W
+      ["lighting", 1],      // Office Fluorescent T8
+      ["boiler", 2],        // Steam Boiler 5000kWt
+      ["boiler", 1],        // Gas Boiler 1000kWt — space heating
+      ["vfd", 2],           // VFD on 110kW compressor
+      ["datacenter", 1],    // Small Data Closet — SCADA
+      ["pfc", 1],           // PFC 2000kW
+      ["solar", 0],         // Rooftop PV 250kWp
+    ]
+  },
+  "auto": {
+    label: "Automotive Assembly Plant",
+    settings: { hours: 5600, tariff: 0.11, demand: 15, gas: 1.10, co2: 0.42, discount: 8, period: 12, facilities: 1 },
+    subs: [
+      ["transformer", 1],   // 2500 kVA — main intake
+      ["transformer", 0],   // 1000 kVA — body shop
+      ["cable", 0],         // Main Feeder 400A
+      ["cable", 1],         // Sub-Distribution 200A
+      ["switchgear", 0],    // LV Switchboard
+      ["motor", 1],         // 200kW IE2 — paint booth fans
+      ["motor", 0],         // 75kW IE2 — conveyor line
+      ["motor", 2],         // 37kW IE1 — legacy welding positioners
+      ["pump", 0],          // Centrifugal 55kW — coolant circulation
+      ["pump", 1],          // Booster 15kW — wash station
+      ["fan", 0],           // Centrifugal 30kW — spray booth exhaust
+      ["fan", 1],           // Axial 15kW — general ventilation
+      ["compressor-m", 0],  // Screw 90kW — robot pneumatics
+      ["compressor-m", 1],  // Reciprocating 45kW — body shop tools
+      ["compressed-air", 0],// Rotary Screw 75kW — assembly tools
+      ["chiller", 0],       // 500kWt Screw — process cooling
+      ["ahu", 0],           // 50,000 CFM — paint booth AHU
+      ["ahu", 1],           // 20,000 CFM — assembly hall
+      ["lighting", 0],      // HID 400W — plant floor
+      ["lighting", 1],      // Fluorescent T8 — offices
+      ["vfd", 0],           // VFD on 55kW pump
+      ["vfd", 1],           // VFD on 30kW fan
+      ["boiler", 0],        // Gas Boiler 3000kWt — paint curing ovens
+      ["datacenter", 1],    // Data Closet — MES systems
+      ["pfc", 1],           // PFC 2000kW
+      ["solar", 0],         // Rooftop PV 250kWp
+    ]
+  },
+  "pharma": {
+    label: "Pharmaceutical / Clean Room Facility",
+    settings: { hours: 8000, tariff: 0.14, demand: 14, gas: 1.15, co2: 0.38, discount: 7, period: 10, facilities: 1 },
+    subs: [
+      ["transformer", 0],   // 1000 kVA — main
+      ["transformer", 2],   // 500 kVA — clean room dedicated
+      ["cable", 0],         // Main Feeder
+      ["switchgear", 0],    // LV Switchboard
+      ["motor", 0],         // 75kW IE2 — HVAC supply fans
+      ["motor", 2],         // 37kW IE1 — legacy process mixers
+      ["pump", 0],          // Centrifugal 55kW — chilled water
+      ["pump", 1],          // Booster 15kW — WFI system
+      ["fan", 0],           // 30kW — clean room recirculation fans
+      ["fan", 1],           // 15kW — fume cupboard exhaust
+      ["chiller", 1],       // 1000kWt Centrifugal — main
+      ["chiller", 2],       // 200kWt Air-Cooled — backup
+      ["ahu", 0],           // 50,000 CFM — ISO 7 clean room
+      ["ahu", 0],           // 50,000 CFM — ISO 8 clean room
+      ["ahu", 1],           // 20,000 CFM — packaging
+      ["cooling-tower", 0], // 500kWt rejection
+      ["compressed-air", 0],// Rotary Screw 75kW — clean air
+      ["lighting", 1],      // Fluorescent T8 — clean rooms
+      ["lighting", 2],      // LED 150W — warehouse
+      ["boiler", 1],        // Gas Boiler 1000kWt — steam for sterilisation
+      ["vfd", 0],           // VFD on 55kW chilled water pump
+      ["vfd", 1],           // VFD on 30kW AHU fan
+      ["datacenter", 1],    // Data Closet — GxP systems
+      ["pfc", 0],           // PFC 800kW
+      ["solar", 1],         // Carpark PV 100kWp
+    ]
+  },
+  "datacentre": {
+    label: "Data Centre (Colocation)",
+    settings: { hours: 8760, tariff: 0.10, demand: 20, gas: 1.10, co2: 0.40, discount: 10, period: 10, facilities: 1 },
+    subs: [
+      ["transformer", 1],   // 2500 kVA — main A feed
+      ["transformer", 1],   // 2500 kVA — main B feed (redundant)
+      ["transformer", 0],   // 1000 kVA — mechanical services
+      ["cable", 0],         // Main Feeder 400A
+      ["cable", 1],         // Sub-Distribution — server row feeds
+      ["switchgear", 0],    // LV Switchboard — main
+      ["switchgear", 1],    // MV Switchgear — utility intake
+      ["datacenter", 2],    // Edge Data Centre 500kW — Hall A
+      ["datacenter", 0],    // Server Room 200kW — Hall B
+      ["datacenter", 0],    // Server Room 200kW — Hall C
+      ["chiller", 1],       // 1000kWt Centrifugal — primary
+      ["chiller", 0],       // 500kWt Screw — secondary
+      ["cooling-tower", 0], // 500kWt — free cooling
+      ["cooling-tower", 1], // 200kWt — backup
+      ["pump", 2],          // Process Pump 110kW — chilled water
+      ["pump", 0],          // Centrifugal 55kW — condenser water
+      ["fan", 0],           // 30kW — CRAH units
+      ["fan", 1],           // 15kW — fresh air intake
+      ["ahu", 1],           // 20,000 CFM — office/NOC
+      ["lighting", 2],      // LED 150W — server halls
+      ["lighting", 1],      // Fluorescent — offices
+      ["compressed-air", 2],// Small 22kW — fire suppression
+      ["vfd", 0],           // VFD on 55kW pump
+      ["vfd", 1],           // VFD on 30kW CRAH fan
+      ["pfc", 1],           // PFC 2000kW
+      ["solar", 0],         // Rooftop PV 250kWp
+    ]
+  },
+  "office": {
+    label: "Commercial Office Building",
+    settings: { hours: 3000, tariff: 0.15, demand: 10, gas: 1.20, co2: 0.35, discount: 6, period: 10, facilities: 1 },
+    subs: [
+      ["transformer", 2],   // 500 kVA Pad-Mount
+      ["cable", 1],         // Sub-Distribution 200A
+      ["switchgear", 1],    // MV Switchgear
+      ["motor", 2],         // 37kW IE1 — AHU fan motors (legacy)
+      ["pump", 1],          // Booster 15kW — HVAC circulation
+      ["pump", 1],          // Booster 15kW — domestic hot water
+      ["fan", 1],           // Axial 15kW — car park ventilation
+      ["chiller", 2],       // 200kWt Air-Cooled — rooftop
+      ["heat-pump", 0],     // Air-Source HP 100kWt — heating
+      ["ahu", 1],           // 20,000 CFM — floors 1-3
+      ["ahu", 1],           // 20,000 CFM — floors 4-6
+      ["cooling-tower", 1], // 200kWt
+      ["lighting", 1],      // Fluorescent T8 — open plan offices
+      ["lighting", 2],      // LED 150W — reception & lobbies
+      ["datacenter", 1],    // Data Closet 20kW — IT comms room
+      ["boiler", 1],        // Gas Boiler 1000kWt — space heating
+      ["vfd", 1],           // VFD on 30kW AHU fan
+      ["pfc", 0],           // PFC 800kW
+      ["solar", 1],         // Carpark PV 100kWp
+    ]
+  },
+  "water": {
+    label: "Water Treatment Works",
+    settings: { hours: 8760, tariff: 0.10, demand: 16, gas: 1.05, co2: 0.42, discount: 7, period: 15, facilities: 1 },
+    subs: [
+      ["transformer", 0],   // 1000 kVA
+      ["transformer", 2],   // 500 kVA — process building
+      ["cable", 0],         // Main Feeder
+      ["cable", 2],         // Motor Feeders
+      ["switchgear", 0],    // LV Switchboard
+      ["motor", 0],         // 75kW IE2 — aeration blower
+      ["motor", 0],         // 75kW IE2 — raw water intake pump
+      ["motor", 2],         // 37kW IE1 — sludge scraper drives
+      ["motor", 2],         // 37kW IE1 — old clarifier drives
+      ["pump", 2],          // Process Pump 110kW — high-lift
+      ["pump", 0],          // Centrifugal 55kW — backwash
+      ["pump", 0],          // Centrifugal 55kW — chemical dosing
+      ["pump", 1],          // Booster 15kW — site services
+      ["fan", 0],           // Centrifugal 30kW — aeration
+      ["fan", 1],           // Axial 15kW — odour control
+      ["compressor-m", 0],  // Screw 90kW — process air
+      ["compressed-air", 0],// Rotary Screw 75kW — instruments
+      ["lighting", 0],      // HID 400W — outdoor/process area
+      ["lighting", 1],      // Fluorescent — control building
+      ["vfd", 0],           // VFD on 55kW pump
+      ["vfd", 0],           // VFD on 55kW blower
+      ["vfd", 1],           // VFD on 30kW fan
+      ["datacenter", 1],    // Data Closet — SCADA
+      ["pfc", 0],           // PFC 800kW
+      ["solar", 0],         // Rooftop PV 250kWp
+    ]
+  },
+  "food": {
+    label: "Food & Beverage Processing",
+    settings: { hours: 5000, tariff: 0.12, demand: 14, gas: 1.10, co2: 0.42, discount: 8, period: 10, facilities: 1 },
+    subs: [
+      ["transformer", 0],   // 1000 kVA
+      ["cable", 0],         // Main Feeder
+      ["cable", 1],         // Sub-Distribution
+      ["switchgear", 0],    // LV Switchboard
+      ["motor", 0],         // 75kW IE2 — mixing/blending
+      ["motor", 2],         // 37kW IE1 — old conveyor motors
+      ["motor", 2],         // 37kW IE1 — filling line drives
+      ["pump", 0],          // Centrifugal 55kW — CIP system
+      ["pump", 1],          // Booster 15kW — product transfer
+      ["fan", 0],           // Centrifugal 30kW — oven exhaust
+      ["fan", 1],           // Axial 15kW — cold room evaporators
+      ["compressor-m", 0],  // Screw 90kW — refrigeration compressor
+      ["compressor-m", 1],  // Reciprocating 45kW — backup
+      ["chiller", 0],       // 500kWt Screw — process cooling
+      ["chiller", 2],       // 200kWt Air-Cooled — glycol loop
+      ["compressed-air", 0],// Rotary Screw 75kW — packaging line
+      ["furnace", 1],       // Resistance Furnace 500kW — baking oven
+      ["boiler", 0],        // Gas Boiler 3000kWt — steam for pasteurisation
+      ["boiler", 1],        // Gas Boiler 1000kWt — CIP hot water
+      ["lighting", 0],      // HID 400W — warehouse
+      ["lighting", 1],      // Fluorescent — processing hall
+      ["ahu", 0],           // 50,000 CFM — production area
+      ["ahu", 1],           // 20,000 CFM — packaging room
+      ["vfd", 0],           // VFD on 55kW CIP pump
+      ["vfd", 1],           // VFD on 30kW exhaust fan
+      ["datacenter", 1],    // Data Closet — SCADA/MES
+      ["pfc", 0],           // PFC 800kW
+      ["solar", 1],         // Carpark PV 100kWp
+    ]
+  },
+  "warehouse": {
+    label: "Cold Storage / Distribution Warehouse",
+    settings: { hours: 8760, tariff: 0.11, demand: 12, gas: 1.10, co2: 0.42, discount: 8, period: 10, facilities: 3 },
+    subs: [
+      ["transformer", 2],   // 500 kVA Pad-Mount
+      ["cable", 1],         // Sub-Distribution 200A
+      ["switchgear", 1],    // MV Switchgear
+      ["motor", 2],         // 37kW IE1 — conveyor drives (old)
+      ["motor", 2],         // 37kW IE1 — dock door drives
+      ["pump", 1],          // Booster 15kW — defrost circuit
+      ["fan", 1],           // Axial 15kW — evaporator fans
+      ["fan", 1],           // Axial 15kW — condenser fans
+      ["compressor-m", 0],  // Screw 90kW — ammonia refrigeration
+      ["compressor-m", 1],  // Reciprocating 45kW — blast freezer
+      ["chiller", 2],       // 200kWt Air-Cooled — office area
+      ["cooling-tower", 1], // 200kWt — condenser heat rejection
+      ["compressed-air", 2],// Small 22kW — dock equipment
+      ["lighting", 0],      // HID 400W — main warehouse (24/7)
+      ["lighting", 2],      // LED 150W — loading docks
+      ["lighting", 1],      // Fluorescent — offices
+      ["ahu", 1],           // 20,000 CFM — office HVAC
+      ["vfd", 0],           // VFD on compressor
+      ["vfd", 1],           // VFD on evaporator fans
+      ["datacenter", 1],    // Data Closet — WMS
+      ["pfc", 0],           // PFC 800kW
+      ["solar", 0],         // Rooftop PV 250kWp
+    ]
+  },
+};
+
 function loadDemo() {
+  const sel = document.getElementById("demo-select").value;
+  if (!sel || !DEMO_SCENARIOS[sel]) {
+    alert("Please select an industry example from the dropdown.");
+    return;
+  }
+  const scenario = DEMO_SCENARIOS[sel];
   subsystems = [];
   compIdCounter = 0;
-  // Typical manufacturing plant
-  [
-    ["transformer", 0],   // 1000 kVA Oil-Filled
-    ["cable", 0],         // Main Feeder
-    ["motor", 0],         // 75kW IE2
-    ["motor", 2],         // 37kW IE1 old
-    ["pump", 0],          // Centrifugal 55kW
-    ["fan", 0],           // Centrifugal 30kW
-    ["chiller", 0],       // 500kWt Screw
-    ["lighting", 0],      // Warehouse HID
-    ["lighting", 1],      // Office Fluorescent
-    ["vfd", 0],           // VFD on 55kW pump
-    ["compressed-air", 0],// Rotary Screw 75kW
-    ["datacenter", 1],    // Small Data Closet
-    ["boiler", 1],        // Gas Boiler 1000 kWt
-    ["solar", 1],         // Carpark PV 100kWp
-    ["pfc", 0],           // PFC 800kW load
-  ].forEach(([type, pi]) => addSubsystem(type, pi));
+
+  // Apply facility settings
+  const s = scenario.settings;
+  document.getElementById("fac-hours").value = s.hours;
+  document.getElementById("fac-tariff").value = s.tariff;
+  document.getElementById("fac-demand").value = s.demand;
+  document.getElementById("fac-gas").value = s.gas;
+  document.getElementById("fac-co2").value = s.co2;
+  document.getElementById("fac-discount").value = s.discount;
+  document.getElementById("fac-period").value = s.period;
+  document.getElementById("fac-facilities").value = s.facilities;
+
+  // Load subsystems
+  scenario.subs.forEach(([type, pi]) => addSubsystem(type, pi));
   renderCompList();
+
+  // Hide old results
+  document.getElementById("results").classList.remove("visible");
 }
 
 /* ================================================================
